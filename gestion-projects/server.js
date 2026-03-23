@@ -152,6 +152,7 @@ app.delete("/projects/:id", authMidlleware, async (req, res) => {
 // ===================== CATEGORIES =====================
 
 app.get("/categories", async (req, res) => {
+  console.log('Fetching categories');
   const data = await Category.find();
   res.json(data);
 });
