@@ -104,7 +104,7 @@ app.post("/projects", authMidlleware, (req, res) => {
 
 app.get("/projects", authMidlleware, async (req, res) => {
   try {
-    const projects = await Project.find().populate("idCategory").populate("members", "username email");
+    const projects = await Project.find();
     res.json(projects);
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur", error });
