@@ -5,7 +5,6 @@ import Project from "./modules/project.js";
 import Category from "./modules/category.js";
 import User from "./modules/user.js";
 import Task from "./modules/task.js";
-import Message from "./modules/message.js";
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import authMidlleware from "./midllewares/auth.js";
@@ -103,6 +102,7 @@ app.post("/projects", authMidlleware, (req, res) => {
 });
 
 app.get("/projects", authMidlleware, async (req, res) => {
+  console.log("nnnnnn")
   try {
     const projects = await Project.find();
     res.json(projects);
@@ -186,7 +186,6 @@ app.delete("/categories/:id", authMidlleware, async (req, res) => {
   }
 });
 
-// ===================== TASKS =====================
 
 app.get("/tasks", authMidlleware, async (req, res) => {
   try {
@@ -249,31 +248,9 @@ app.post("/tasks/:id/comments", authMidlleware, async (req, res) => {
   }
 });
 
-// ===================== MESSAGES =====================
 
-app.get("/messages/:projectId", authMidlleware, async (req, res) => {
-  try {
-    const messages = await Message.find({ projectId: req.params.projectId })
-      .populate("user", "username")
-      .sort({ createdAt: 1 });
-    res.json(messages);
-  } catch (error) {
-    res.status(500).json({ message: "Erreur serveur", error });
-  }
-});
 
-app.post("/messages", authMidlleware, async (req, res) => {
-  try {
-    const message = new Message({ ...req.body, user: req.user.id });
-    await message.save();
-    const populated = await message.populate("user", "username");
-    res.json(populated);
-  } catch (error) {
-    res.status(500).json({ message: "Erreur serveur", error });
-  }
-});
 
-// ===================== START SERVER =====================
 
 app.listen(PORT, async () => {
   mongoose

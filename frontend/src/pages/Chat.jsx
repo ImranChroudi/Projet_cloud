@@ -42,6 +42,7 @@ export default function Chat() {
   const loadMessages = async (projectId) => {
     try {
       const res = await API.get(`/messages/${projectId}`);
+      console.log("kkkkkkk")
       setMessages(res.data);
     } catch (err) {
       // Messages endpoint might not exist yet
