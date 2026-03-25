@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import API from '../api/axios';
+import taskAPI from '../api/taskApi';
 import {
   Plus,
   X,
@@ -69,7 +70,7 @@ export default function KanbanBoard() {
       const url = selectedProject
         ? `/tasks?projectId=${selectedProject}`
         : '/tasks';
-      const res = await API.get(url);
+      const res = await taskAPI.get(url);
       setTasks(res.data);
     } catch (err) {
       console.error('Error loading tasks:', err);
@@ -85,9 +86,9 @@ export default function KanbanBoard() {
       if (!payload.projectId) delete payload.projectId;
 
       if (editTask) {
-        await API.put(`/tasks/${editTask._id}`, payload);
+        await taskAPI.put(`/tasks/${editTask._id}`, payload);
       } else {
-        await API.post('/tasks', payload);
+        await taskAPI.post('/tasks', payload);
       }
       setShowForm(false);
       setEditTask(null);
@@ -109,7 +110,7 @@ export default function KanbanBoard() {
   const handleDelete = async (id) => {
     if (!window.confirm('Supprimer cette tâche ?')) return;
     try {
-      await API.delete(`/tasks/${id}`);
+      await taskAPI.delete(`/tasks/${id}`);
       loadTasks();
     } catch (err) {
       console.error('Error deleting task:', err);
@@ -118,7 +119,7 @@ export default function KanbanBoard() {
 
   const handleStatusChange = async (taskId, newStatus) => {
     try {
-      await API.put(`/tasks/${taskId}`, { status: newStatus });
+      await taskAPI.put(`/tasks/${taskId}`, { status: newStatus });
       loadTasks();
     } catch (err) {
       console.error('Error updating status:', err);
@@ -128,7 +129,7 @@ export default function KanbanBoard() {
   const handleAddComment = async (taskId) => {
     if (!commentText.trim()) return;
     try {
-      await API.post(`/tasks/${taskId}/comments`, { text: commentText });
+      await taskAPI.post(`/tasks/${taskId}/comments`, { text: commentText });
       setCommentText('');
       loadTasks();
     } catch (err) {
