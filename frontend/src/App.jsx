@@ -39,9 +39,9 @@ function App() {
             <Route
               path="users"
               element={
-                //<ProtectedRoute adminOnly>
+                <ProtectedRoute adminOnly={true}>
                   <Users />
-                //</ProtectedRoute>
+                </ProtectedRoute>
               }
             />
           </Route>

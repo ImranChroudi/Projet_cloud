@@ -52,8 +52,8 @@ const login = async (email, password) => {
 };
 
   //  REGISTER (fix name)
-  const register = async (name, email, password) => {
-await API.post("/auth/register", { name, email, password });  };
+  const register = async (name, email, password,role) => {
+await API.post("/auth/register", { name, email, password,role });  };
 
   const logout = () => {
     localStorage.removeItem("token");
@@ -63,7 +63,9 @@ await API.post("/auth/register", { name, email, password });  };
   };
 
 
-    const isAdmin = () => true;
+  const isAdmin = () => {
+  return user?.role === "admin";
+};
    const isManager = () => true;
 
   return (
