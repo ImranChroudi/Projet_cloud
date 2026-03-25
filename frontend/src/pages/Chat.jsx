@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import API from '../api/axios';
+import messageApi from '../api/messageApi';
+import { io } from 'socket.io-client';
 import { Send, Hash, Users, Smile } from 'lucide-react';
+
+const SOCKET_URL = 'http://localhost:3003';
 
 export default function Chat() {
   const { user } = useAuth();
@@ -10,16 +14,42 @@ export default function Chat() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef(null);
+  const socketRef = useRef(null);
 
+  // Connect socket on mount
   useEffect(() => {
+
+  
+    
+    const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YjU5NDc1NzYyYmVjZjdmMjlkZjUzOSIsInJvbGUiOiJhZG1pbiIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJpYXQiOjE3NzM1ODI2ODZ9.qrzLr2wqXBNLjJPDiSDzsf-WpRhknXVf70RF1KkhYEo";
+    socketRef.current = io(SOCKET_URL, {
+      auth: { token },
+    });
+
+
+    socketRef.current.on("newMessage", (message) => {
+     if (message.projectId === selectedChannel?._id) {
+    console.log("Correct room message:", message);
+    setMessages((prev) => [...prev, message]);
+  }
+    });
+
     loadProjects();
+
+    return () => {
+      socketRef.current?.disconnect();
+    };
   }, []);
 
+  // Join/leave project room when channel changes
   useEffect(() => {
     if (selectedChannel) {
+      socketRef.current?.emit("joinProject", selectedChannel._id);
       loadMessages(selectedChannel._id);
-      const interval = setInterval(() => loadMessages(selectedChannel._id), 5000);
-      return () => clearInterval(interval);
+
+      return () => {
+        socketRef.current?.emit("leaveProject", selectedChannel._id);
+      };
     }
   }, [selectedChannel]);
 
@@ -41,38 +71,22 @@ export default function Chat() {
 
   const loadMessages = async (projectId) => {
     try {
-      const res = await API.get(`/messages/${projectId}`);
-      console.log("kkkkkkk")
+      const res = await messageApi.get(`/messages/${projectId}`);
       setMessages(res.data);
     } catch (err) {
-      // Messages endpoint might not exist yet
       console.error('Messages not available:', err);
     }
   };
 
   const sendMessage = async (e) => {
+    console.log("Sending message:", newMessage);
     e.preventDefault();
     if (!newMessage.trim() || !selectedChannel) return;
-    try {
-      await API.post('/messages', {
-        projectId: selectedChannel._id,
-        text: newMessage,
-      });
-      setNewMessage('');
-      loadMessages(selectedChannel._id);
-    } catch (err) {
-      // Optimistic UI update even if backend not ready
-      setMessages((prev) => [
-        ...prev,
-        {
-          _id: Date.now(),
-          text: newMessage,
-          user: { username: user?.username },
-          createdAt: new Date().toISOString(),
-        },
-      ]);
-      setNewMessage('');
-    }
+    socketRef.current?.emit("sendMessage", {
+      projectId: selectedChannel._id,
+      text: newMessage,
+    });
+    setNewMessage('');
   };
 
   const formatTime = (date) => {
@@ -168,7 +182,7 @@ export default function Chat() {
                         </div>
                       )}
                       <div
-                        className={`chat-message ${msg.user?.username === user?.username ? 'own' : ''}`}
+                        className={`chat-message ${msg.username === user?.username ? 'own' : ''}`}
                       >
                         <div className="chat-msg-avatar">
                           {(msg.user?.username || 'U').charAt(0).toUpperCase()}
@@ -176,7 +190,7 @@ export default function Chat() {
                         <div className="chat-msg-content">
                           <div className="chat-msg-header">
                             <span className="chat-msg-author">
-                              {msg.user?.username || 'Utilisateur'}
+                              {msg?.username || 'Utilisateur'}
                             </span>
                             <span className="chat-msg-time">
                               {formatTime(msg.createdAt)}

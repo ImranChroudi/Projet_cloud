@@ -1,0 +1,120 @@
+version: "3.8"
+
+services:
+  # ── Databases ──
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - app-network
+
+  mysql:
+    image: mysql:8
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: projet_synthese
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./auth-service/setup.sql:/docker-entrypoint-initdb.d/setup.sql
+    networks:
+      - app-network
+
+  # ── Microservices ──
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    ports:
+      - "5001:5001"
+    environment:
+      DB_HOST: mysql
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_NAME: projet_synthese
+      SECRET_TOKEN: "your_secret_token_here"
+    depends_on:
+      - mysql
+    networks:
+      - app-network
+
+  gestion-projects:
+    build: ./gestion-projects
+    container_name: gestion-projects
+    ports:
+      - "3000:3000"
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/project-cloud
+      SECRET_TOKEN: "your_secret_token_here"
+      NOTIFICATION_URL: http://service-notifications:3004
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+
+  service-tache:
+    build: ./service_tache
+    container_name: service-tache
+    ports:
+      - "5003:5003"
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/project-cloud
+      NOTIFICATION_URL: http://service-notifications:3004
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+
+  service-messages:
+    build: ./service-messages
+    container_name: service-messages
+    ports:
+      - "3003:3003"
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/project-cloud
+      SECRET_TOKEN: "your_secret_token_here"
+      NOTIFICATION_URL: http://service-notifications:3004
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+
+  service-notifications:
+    build: ./service-notifications
+    container_name: service-notifications
+    ports:
+      - "3004:3004"
+    environment:
+      MONGO_URI: mongodb://mongodb:27017/project-cloud
+      SECRET_TOKEN: "your_secret_token_here"
+    depends_on:
+      - mongodb
+    networks:
+      - app-network
+
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - auth-service
+      - gestion-projects
+      - service-tache
+      - service-messages
+      - service-notifications
+    networks:
+      - app-network
+
+volumes:
+  mongo_data:
+  mysql_data:
+
+networks:
+  app-network:
+    driver: bridge

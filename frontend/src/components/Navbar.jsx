@@ -1,10 +1,74 @@
 import { useAuth } from '../context/AuthContext';
-import { Bell, Search, Menu } from 'lucide-react';
-import { useState } from 'react';
+import { Bell, Search, Menu, FolderPlus, ListChecks, MessageSquare } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { io } from 'socket.io-client';
+import notifApi from '../api/notifApi';
+
+const NOTIF_SOCKET_URL = 'http://localhost:3004';
+
+const NOTIF_ICONS = {
+  project_created: FolderPlus,
+  task_created: ListChecks,
+  message_sent: MessageSquare,
+};
+
+function timeAgo(date) {
+  const seconds = Math.floor((Date.now() - new Date(date)) / 1000);
+  if (seconds < 60) return 'À l\'instant';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `Il y a ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Il y a ${hours}h`;
+  return `Il y a ${Math.floor(hours / 24)}j`;
+}
 
 export default function Navbar({ onMenuClick }) {
   const { user } = useAuth();
   const [showNotif, setShowNotif] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const socketRef = useRef(null);
+
+  useEffect(() => {
+    // Load existing notifications
+    notifApi.get('/notifications?unread=true').then((res) => {
+      setNotifications(res.data);
+    }).catch(() => {});
+
+    // Connect to notification socket
+    const token = localStorage.getItem('token') ||
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YjU5NDc1NzYyYmVjZjdmMjlkZjUzOSIsInJvbGUiOiJhZG1pbiIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJpYXQiOjE3NzM1ODI2ODZ9.qrzLr2wqXBNLjJPDiSDzsf-WpRhknXVf70RF1KkhYEo";
+    socketRef.current = io(NOTIF_SOCKET_URL, { auth: { token } });
+
+    socketRef.current.on('notification', (notif) => {
+      setNotifications((prev) => [notif, ...prev]);
+    });
+
+    return () => {
+      socketRef.current?.disconnect();
+    };
+  }, []);
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const markAsRead = async (id) => {
+    try {
+      await notifApi.put(`/notifications/${id}/read`);
+      setNotifications((prev) =>
+        prev.map((n) => (n._id === id ? { ...n, read: true } : n))
+      );
+    } catch (err) {
+      console.error('Mark read error:', err);
+    }
+  };
+
+  const markAllRead = async () => {
+    try {
+      await notifApi.put('/notifications/read-all');
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    } catch (err) {
+      console.error('Mark all read error:', err);
+    }
+  };
 
   return (
     <nav className="topbar">
@@ -25,33 +89,46 @@ export default function Navbar({ onMenuClick }) {
             onClick={() => setShowNotif(!showNotif)}
           >
             <Bell size={20} />
-            <span className="notif-badge">3</span>
+            {unreadCount > 0 && (
+              <span className="notif-badge">{unreadCount}</span>
+            )}
           </button>
           {showNotif && (
             <div className="notif-dropdown">
               <div className="notif-header">
                 <h4>Notifications</h4>
+                {unreadCount > 0 && (
+                  <button className="notif-mark-all" onClick={markAllRead}>
+                    Tout marquer lu
+                  </button>
+                )}
               </div>
-              <div className="notif-item unread">
-                <div className="notif-dot"></div>
-                <div>
-                  <p>Nouvelle tâche assignée à vous</p>
-                  <span>Il y a 5 min</span>
+              {notifications.length === 0 ? (
+                <div className="notif-empty">
+                  <p>Aucune notification</p>
                 </div>
-              </div>
-              <div className="notif-item unread">
-                <div className="notif-dot"></div>
-                <div>
-                  <p>Commentaire sur &quot;Design UI&quot;</p>
-                  <span>Il y a 20 min</span>
-                </div>
-              </div>
-              <div className="notif-item">
-                <div>
-                  <p>Projet &quot;App Mobile&quot; terminé</p>
-                  <span>Il y a 1h</span>
-                </div>
-              </div>
+              ) : (
+                notifications.slice(0, 20).map((notif) => {
+                  const Icon = NOTIF_ICONS[notif.type] || Bell;
+                  return (
+                    <div
+                      key={notif._id}
+                      className={`notif-item ${!notif.read ? 'unread' : ''}`}
+                      onClick={() => markAsRead(notif._id)}
+                    >
+                      {!notif.read && <div className="notif-dot"></div>}
+                      <div className="notif-icon-wrapper">
+                        <Icon size={16} />
+                      </div>
+                      <div>
+                        <p className="notif-title">{notif.title}</p>
+                        <p className="notif-message">{notif.message}</p>
+                        <span>{timeAgo(notif.createdAt)}</span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           )}
         </div>

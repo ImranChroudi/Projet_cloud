@@ -4,11 +4,12 @@ import { useAuth } from '../context/AuthContext';
 import { LogIn, Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState(''); // ✅ بدل username
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -16,8 +17,9 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
+
     try {
-      await login(username, password);
+      await login(email, password); 
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Erreur de connexion');
@@ -45,12 +47,12 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="auth-field">
-            <label>Nom d&apos;utilisateur</label>
+            <label>Email</label> 
             <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Entrez votre nom d'utilisateur"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Entrez votre email"
               required
             />
           </div>

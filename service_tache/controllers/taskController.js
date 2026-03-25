@@ -6,6 +6,10 @@ exports.createTask = async (req,res)=>{
  try{
   const task = new Task(req.body)
   await task.save()
+  const sendNotification = req.app.get("sendNotification");
+  if (sendNotification) {
+    await sendNotification("task_created", "Nouvelle tâche", `La tâche "${task.title}" a été créée`, null, task.projectId);
+  }
   res.status(201).json(task)
  }catch(err){
   res.status(500).json(err)

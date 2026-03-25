@@ -12,6 +12,19 @@ import authMidlleware from "./midllewares/auth.js";
 dotenv.config();
 const app = express();
 const PORT = 3000;
+const NOTIFICATION_URL = process.env.NOTIFICATION_URL || "http://localhost:3004";
+
+const sendNotification = async (type, title, message, userId, projectId) => {
+  try {
+    await fetch(`${NOTIFICATION_URL}/notifications`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type, title, message, userId, projectId }),
+    });
+  } catch (err) {
+    console.error("Notification error:", err.message);
+  }
+};
 
 app.use(cors());
 app.use(express.json());
@@ -94,11 +107,15 @@ app.delete("/users/:id", authMidlleware, async (req, res) => {
 
 // ===================== PROJECTS =====================
 
-app.post("/projects", authMidlleware, (req, res) => {
-  const newProject = new Project({ ...req.body, createdBy: req.user.id });
-  newProject.save().then((project) => {
+app.post("/projects", authMidlleware, async (req, res) => {
+  try {
+    const newProject = new Project({ ...req.body, createdBy: req.user.id });
+    const project = await newProject.save();
+    await sendNotification("project_created", "Nouveau projet", `Le projet "${project.name}" a été créé`, req.user.id, project._id);
     res.status(201).json(project);
-  });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error });
+  }
 });
 
 app.get("/projects", authMidlleware, async (req, res) => {
@@ -206,6 +223,7 @@ app.post("/tasks", authMidlleware, async (req, res) => {
     const task = new Task({ ...req.body, createdBy: req.user.id });
     await task.save();
     const populated = await task.populate("assignedTo", "username email");
+    await sendNotification("task_created", "Nouvelle tâche", `La tâche "${task.title}" a été créée`, req.user.id, task.projectId);
     res.status(201).json(populated);
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur", error });

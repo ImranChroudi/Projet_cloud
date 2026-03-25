@@ -25,6 +25,7 @@ export default function Register() {
     }
 
     setLoading(true);
+    navigate('/login');
     try {
       await register(form.username, form.email, form.password);
       navigate('/login');

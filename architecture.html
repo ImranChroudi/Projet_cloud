@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Architecture Microservices — ProjetCloud</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    header {
+      text-align: center;
+      padding: 40px 20px 20px;
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      border-bottom: 1px solid #1e293b;
+    }
+    header h1 {
+      font-size: 2.2rem;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    header p { color: #94a3b8; font-size: 1.05rem; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 30px 20px; }
+
+    /* ── Architecture Diagram ── */
+    .diagram-section {
+      margin-bottom: 50px;
+    }
+    .diagram-section h2 {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      color: #38bdf8;
+      text-align: center;
+    }
+
+    .architecture {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    /* Frontend box */
+    .frontend-box {
+      background: linear-gradient(135deg, #1e3a5f, #1e293b);
+      border: 2px solid #38bdf8;
+      border-radius: 16px;
+      padding: 24px 32px;
+      text-align: center;
+      width: 960px;
+      max-width: 95%;
+      position: relative;
+    }
+    .frontend-box h3 {
+      font-size: 1.3rem;
+      color: #38bdf8;
+      margin-bottom: 6px;
+    }
+    .frontend-box .tech {
+      color: #94a3b8;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+    }
+    .frontend-box .apis {
+      display: grid;
+      grid-template-columns: repeat(5, auto);
+      justify-content: center;
+      gap: 10px;
+    }
+    .api-tag {
+      background: #0f172a;
+      border: 1px solid #334155;
+      padding: 5px 12px;
+      border-radius: 8px;
+      font-size: 0.76rem;
+      color: #cbd5e1;
+      font-family: monospace;
+      white-space: nowrap;
+    }
+
+    /* Connector lines */
+    .connectors {
+      display: flex;
+      justify-content: center;
+      width: 960px;
+      max-width: 95%;
+      position: relative;
+      height: 50px;
+    }
+    .connectors::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 16px;
+      background: #475569;
+    }
+    .connectors::after {
+      content: '';
+      position: absolute;
+      top: 16px;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background: #475569;
+    }
+    .connector-line {
+      position: absolute;
+      top: 16px;
+      width: 2px;
+      height: 34px;
+      background: #475569;
+    }
+    /* Center each line on the service card: 10%, 30%, 50%, 70%, 90% */
+    .cl-1 { left: 10%; }
+    .cl-2 { left: 30%; }
+    .cl-3 { left: 50%; }
+    .cl-4 { left: 70%; }
+    .cl-5 { left: 90%; }
+
+    /* Service cards row */
+    .services-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      width: 960px;
+      max-width: 95%;
+    }
+
+    .service-card {
+      border-radius: 14px;
+      padding: 18px 14px;
+      text-align: center;
+      position: relative;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .service-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    }
+    .service-card .icon {
+      font-size: 2rem;
+      margin-bottom: 8px;
+    }
+    .service-card h4 {
+      font-size: 0.95rem;
+      margin-bottom: 4px;
+    }
+    .service-card .port {
+      font-family: monospace;
+      font-size: 0.8rem;
+      padding: 2px 8px;
+      border-radius: 6px;
+      display: inline-block;
+      margin-bottom: 6px;
+    }
+    .service-card .db {
+      font-size: 0.72rem;
+      color: #94a3b8;
+      display: block;
+    }
+
+    .sc-auth {
+      background: linear-gradient(135deg, #312e81, #1e1b4b);
+      border: 2px solid #818cf8;
+    }
+    .sc-auth .port { background: #818cf833; color: #a5b4fc; }
+
+    .sc-gestion {
+      background: linear-gradient(135deg, #065f46, #022c22);
+      border: 2px solid #34d399;
+    }
+    .sc-gestion .port { background: #34d39933; color: #6ee7b7; }
+
+    .sc-tache {
+      background: linear-gradient(135deg, #92400e, #451a03);
+      border: 2px solid #fbbf24;
+    }
+    .sc-tache .port { background: #fbbf2433; color: #fde68a; }
+
+    .sc-messages {
+      background: linear-gradient(135deg, #9f1239, #4c0519);
+      border: 2px solid #fb7185;
+    }
+    .sc-messages .port { background: #fb718533; color: #fda4af; }
+
+    .sc-notif {
+      background: linear-gradient(135deg, #7e22ce, #3b0764);
+      border: 2px solid #c084fc;
+    }
+    .sc-notif .port { background: #c084fc33; color: #d8b4fe; }
+
+    /* ── Database Layer ── */
+    .db-connectors {
+      display: flex;
+      justify-content: center;
+      width: 960px;
+      max-width: 95%;
+      height: 36px;
+      position: relative;
+    }
+    .db-connectors::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background: #475569;
+    }
+    .db-line {
+      position: absolute;
+      bottom: 0;
+      width: 2px;
+      height: 36px;
+      background: #475569;
+    }
+    .dbl-1 { left: 10%; }
+    .dbl-2 { left: 30%; }
+    .dbl-3 { left: 50%; }
+    .dbl-4 { left: 70%; }
+    .dbl-5 { left: 90%; }
+
+    .db-row {
+      display: grid;
+      grid-template-columns: 1fr 4fr;
+      gap: 14px;
+      width: 960px;
+      max-width: 95%;
+      margin-top: 2px;
+    }
+    .db-box {
+      border-radius: 12px;
+      padding: 14px;
+      text-align: center;
+    }
+    .db-mysql {
+      background: linear-gradient(135deg, #1e3a5f, #0c1a2e);
+      border: 2px solid #38bdf8;
+    }
+    .db-mysql h4 { color: #38bdf8; }
+    .db-mongo {
+      background: linear-gradient(135deg, #1a3c2a, #0c1f15);
+      border: 2px solid #4ade80;
+    }
+    .db-mongo h4 { color: #4ade80; }
+    .db-box .db-label {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+
+    /* ── Service Details ── */
+    .details-section {
+      margin-top: 50px;
+    }
+    .details-section > h2 {
+      text-align: center;
+      font-size: 1.5rem;
+      color: #38bdf8;
+      margin-bottom: 30px;
+    }
+
+    .detail-card {
+      background: #1e293b;
+      border-radius: 14px;
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      border: 1px solid #334155;
+    }
+    .detail-card .detail-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .detail-card .detail-header .icon { font-size: 1.6rem; }
+    .detail-card .detail-header h3 { font-size: 1.15rem; }
+    .detail-card .detail-header .port-badge {
+      margin-left: auto;
+      font-family: monospace;
+      font-size: 0.85rem;
+      padding: 3px 12px;
+      border-radius: 8px;
+      background: #0f172a;
+      border: 1px solid #475569;
+    }
+    .detail-card p {
+      color: #94a3b8;
+      font-size: 0.92rem;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+    .detail-card h4 {
+      color: #cbd5e1;
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+    }
+    .endpoints {
+      display: grid;
+      gap: 6px;
+    }
+    .endpoint {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #0f172a;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-family: monospace;
+    }
+    .method {
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      min-width: 45px;
+      text-align: center;
+    }
+    .method-get { background: #065f4633; color: #34d399; }
+    .method-post { background: #312e8133; color: #818cf8; }
+    .method-put { background: #92400e33; color: #fbbf24; }
+    .method-delete { background: #9f123933; color: #fb7185; }
+
+    .tech-list {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .tech-badge {
+      background: #0f172a;
+      border: 1px solid #334155;
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      color: #94a3b8;
+    }
+
+    .socket-events {
+      display: grid;
+      gap: 6px;
+    }
+    .socket-event {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #0f172a;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-family: monospace;
+    }
+    .event-tag {
+      background: #9f123933;
+      color: #fb7185;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+    }
+
+    /* Pages table */
+    .pages-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin-top: 8px;
+    }
+    .pages-table th {
+      text-align: left;
+      padding: 8px 12px;
+      background: #0f172a;
+      color: #38bdf8;
+      font-weight: 600;
+      border-bottom: 1px solid #334155;
+    }
+    .pages-table td {
+      padding: 7px 12px;
+      border-bottom: 1px solid #1e293b;
+      color: #cbd5e1;
+    }
+    .pages-table tr:hover td { background: #1e293b88; }
+    .badge-protected {
+      background: #065f4633;
+      color: #34d399;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+    .badge-public {
+      background: #92400e33;
+      color: #fbbf24;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+    }
+
+    /* ── Inter-service connections ── */
+    .interservice-section {
+      margin-top: 50px;
+    }
+    .interservice-section > h2 {
+      text-align: center;
+      font-size: 1.5rem;
+      color: #38bdf8;
+      margin-bottom: 30px;
+    }
+
+    .connection-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+      margin-bottom: 30px;
+    }
+    .connection-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 14px 18px;
+      flex-wrap: wrap;
+    }
+    .conn-source, .conn-target {
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+    .conn-source { background: #065f4633; color: #34d399; }
+    .conn-target { background: #312e8133; color: #818cf8; }
+    .conn-arrow {
+      color: #475569;
+      font-size: 1.2rem;
+    }
+    .conn-protocol {
+      font-family: monospace;
+      font-size: 0.78rem;
+      background: #0f172a;
+      border: 1px solid #475569;
+      padding: 3px 8px;
+      border-radius: 6px;
+      color: #94a3b8;
+    }
+    .conn-trigger {
+      color: #94a3b8;
+      font-size: 0.82rem;
+      margin-left: auto;
+      font-style: italic;
+    }
+
+    /* ── Data Models ── */
+    .models-section {
+      margin-top: 50px;
+    }
+    .models-section > h2 {
+      text-align: center;
+      font-size: 1.5rem;
+      color: #38bdf8;
+      margin-bottom: 30px;
+    }
+    .models-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+      margin-bottom: 30px;
+    }
+    .model-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 18px;
+    }
+    .model-card h4 {
+      color: #38bdf8;
+      font-size: 1rem;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .model-card .model-service {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      background: #0f172a;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-left: auto;
+    }
+    .model-fields {
+      display: grid;
+      gap: 4px;
+    }
+    .model-field {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      font-family: monospace;
+      padding: 4px 8px;
+      background: #0f172a;
+      border-radius: 6px;
+    }
+    .field-name { color: #e2e8f0; }
+    .field-type { color: #94a3b8; font-size: 0.72rem; margin-left: auto; }
+    .field-ref {
+      color: #fbbf24;
+      font-size: 0.68rem;
+      background: #92400e33;
+      padding: 1px 6px;
+      border-radius: 4px;
+    }
+
+    .relation-box {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 20px 24px;
+    }
+    .relation-box h4 {
+      color: #fbbf24;
+      margin-bottom: 12px;
+      font-size: 0.95rem;
+    }
+    .relation-list {
+      display: grid;
+      gap: 8px;
+    }
+    .relation-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.85rem;
+      padding: 6px 12px;
+      background: #0f172a;
+      border-radius: 8px;
+    }
+    .rel-model { color: #38bdf8; font-weight: 600; }
+    .rel-arrow { color: #475569; }
+    .rel-desc { color: #94a3b8; font-size: 0.78rem; }
+
+    footer {
+      text-align: center;
+      padding: 30px;
+      color: #475569;
+      font-size: 0.85rem;
+      border-top: 1px solid #1e293b;
+      margin-top: 40px;
+    }
+
+    @media (max-width: 980px) {
+      .frontend-box, .connectors, .services-row, .db-connectors, .db-row { width: 100%; }
+      .services-row { grid-template-columns: repeat(3, 1fr); }
+      .frontend-box .apis { grid-template-columns: repeat(3, auto); }
+      .db-row { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .services-row { grid-template-columns: repeat(2, 1fr); }
+      .frontend-box .apis { grid-template-columns: repeat(2, auto); }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>ProjetCloud — Architecture Microservices</h1>
+  <p>Application de gestion de projets avec chat en temps réel</p>
+</header>
+
+<div class="container">
+
+  <!-- ═══════ DIAGRAM ═══════ -->
+  <section class="diagram-section">
+    <h2>Vue d'ensemble de l'architecture</h2>
+    <div class="architecture">
+
+      <!-- Frontend -->
+      <div class="frontend-box">
+        <h3>🖥️ Frontend</h3>
+        <div class="tech">React 19 &bull; Vite &bull; Socket.IO Client &bull; Axios</div>
+        <div class="apis">
+          <span class="api-tag">axiosauth → :5001</span>
+          <span class="api-tag">axios → :3000</span>
+          <span class="api-tag">taskApi → :5003</span>
+          <span class="api-tag">messageApi + WS → :3003</span>
+          <span class="api-tag">notifApi → :5004</span>
+        </div>
+      </div>
+
+      <!-- Connectors -->
+      <div class="connectors">
+        <div class="connector-line cl-1"></div>
+        <div class="connector-line cl-2"></div>
+        <div class="connector-line cl-3"></div>
+        <div class="connector-line cl-4"></div>
+        <div class="connector-line cl-5"></div>
+      </div>
+
+      <!-- Service Cards -->
+      <div class="services-row">
+        <div class="service-card sc-auth">
+          <div class="icon">🔐</div>
+          <h4>auth-service</h4>
+          <span class="port">:5001</span>
+          <span class="db">MySQL</span>
+        </div>
+        <div class="service-card sc-gestion">
+          <div class="icon">📁</div>
+          <h4>gestion-projects</h4>
+          <span class="port">:3000</span>
+          <span class="db">MongoDB</span>
+        </div>
+        <div class="service-card sc-tache">
+          <div class="icon">✅</div>
+          <h4>service_tache</h4>
+          <span class="port">:5003</span>
+          <span class="db">MongoDB</span>
+        </div>
+        <div class="service-card sc-messages">
+          <div class="icon">💬</div>
+          <h4>service-messages</h4>
+          <span class="port">:3003</span>
+          <span class="db">MongoDB + Socket.IO</span>
+        </div>
+        <div class="service-card sc-notif">
+          <div class="icon">🔔</div>
+          <h4>service-notifications</h4>
+          <span class="port">:5004</span>
+          <span class="db">MongoDB</span>
+        </div>
+      </div>
+
+      <!-- DB Connectors -->
+      <div class="db-connectors">
+        <div class="db-line dbl-1"></div>
+        <div class="db-line dbl-2"></div>
+        <div class="db-line dbl-3"></div>
+        <div class="db-line dbl-4"></div>
+        <div class="db-line dbl-5"></div>
+      </div>
+
+      <!-- Databases -->
+      <div class="db-row">
+        <div class="db-box db-mysql">
+          <h4>🐬 MySQL</h4>
+          <span class="db-label">auth-service</span>
+        </div>
+        <div class="db-box db-mongo">
+          <h4>🍃 MongoDB</h4>
+          <span class="db-label">project-cloud (partagée entre 4 services)</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════ SERVICE DETAILS ═══════ -->
+  <section class="details-section">
+    <h2>Détail des services</h2>
+
+    <!-- Frontend -->
+    <div class="detail-card">
+      <div class="detail-header">
+        <span class="icon">🖥️</span>
+        <h3>Frontend</h3>
+        <span class="port-badge">:5173</span>
+      </div>
+      <p>
+        Interface utilisateur construite avec React 19 et Vite. Elle offre un tableau de bord,
+        la gestion de projets avec CRUD complet, un Kanban board drag-and-drop pour les tâches,
+        la gestion des catégories et des utilisateurs, et un chat temps réel via Socket.IO.
+        L'authentification se fait via JWT stocké dans localStorage.
+      </p>
+      <div class="tech-list">
+        <span class="tech-badge">React 19</span>
+        <span class="tech-badge">Vite</span>
+        <span class="tech-badge">React Router v7</span>
+        <span class="tech-badge">Axios</span>
+        <span class="tech-badge">Socket.IO Client</span>
+        <span class="tech-badge">react-beautiful-dnd</span>
+        <span class="tech-badge">react-toastify</span>
+        <span class="tech-badge">Lucide Icons</span>
+      </div>
+      <h4>Pages</h4>
+      <table class="pages-table">
+        <thead>
+          <tr><th>Route</th><th>Page</th><th>Description</th><th>Accès</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>/login</td><td>Login</td><td>Connexion par email / mot de passe</td>
+            <td><span class="badge-public">Public</span></td>
+          </tr>
+          <tr>
+            <td>/register</td><td>Register</td><td>Inscription d'un nouvel utilisateur</td>
+            <td><span class="badge-public">Public</span></td>
+          </tr>
+          <tr>
+            <td>/dashboard</td><td>Dashboard</td><td>Stats, projets récents, tâches récentes</td>
+            <td><span class="badge-protected">Protégé</span></td>
+          </tr>
+          <tr>
+            <td>/projects</td><td>Projects</td><td>CRUD projets, filtrage par nom/status/date</td>
+            <td><span class="badge-protected">Protégé</span></td>
+          </tr>
+          <tr>
+            <td>/tasks</td><td>KanbanBoard</td><td>Tableau Kanban drag & drop (todo, in-progress, done)</td>
+            <td><span class="badge-protected">Protégé</span></td>
+          </tr>
+          <tr>
+            <td>/categories</td><td>Categories</td><td>CRUD catégories de projets</td>
+            <td><span class="badge-protected">Protégé</span></td>
+          </tr>
+          <tr>
+            <td>/chat</td><td>Chat</td><td>Chat temps réel par projet via Socket.IO</td>
+            <td><span class="badge-protected">Protégé</span></td>
+          </tr>
+          <tr>
+            <td>/users</td><td>Users</td><td>Gestion utilisateurs, rôles, ban/unban</td>
+            <td><span class="badge-protected">Protégé</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- auth-service -->
+    <div class="detail-card">
+      <div class="detail-header">
+        <span class="icon">🔐</span>
+        <h3>auth-service</h3>
+        <span class="port-badge">:5001</span>
+      </div>
+      <p>
+        Service d'authentification basé sur MySQL. Gère l'inscription et la connexion des utilisateurs
+        avec hashage bcrypt des mots de passe. Génère des tokens JWT (expiration 1h).
+        Fournit aussi un CRUD utilisateur (bloquer, rôles).
+      </p>
+      <div class="tech-list">
+        <span class="tech-badge">Express</span>
+        <span class="tech-badge">MySQL</span>
+        <span class="tech-badge">Sequelize</span>
+        <span class="tech-badge">bcrypt</span>
+        <span class="tech-badge">JWT</span>
+      </div>
+      <h4>Endpoints</h4>
+      <div class="endpoints">
+        <div class="endpoint"><span class="method method-post">POST</span> /auth/register</div>
+        <div class="endpoint"><span class="method method-post">POST</span> /auth/login</div>
+        <div class="endpoint"><span class="method method-get">GET</span> /users</div>
+        <div class="endpoint"><span class="method method-get">GET</span> /users/:id</div>
+        <div class="endpoint"><span class="method method-put">PUT</span> /users/:id</div>
+        <div class="endpoint"><span class="method method-delete">DEL</span> /users/:id</div>
+        <div class="endpoint"><span class="method method-put">PUT</span> /users/block/:id</div>
+      </div>
+    </div>
+
+    <!-- gestion-projects -->
+    <div class="detail-card">
+      <div class="detail-header">
+        <span class="icon">📁</span>
+        <h3>gestion-projects</h3>
+        <span class="port-badge">:3000</span>
+      </div>
+      <p>
+        Service principal — API gateway pour la gestion des projets, catégories, utilisateurs et tâches.
+        Utilise MongoDB et un middleware JWT pour protéger les routes.
+      </p>
+      <div class="tech-list">
+        <span class="tech-badge">Express</span>
+        <span class="tech-badge">MongoDB</span>
+        <span class="tech-badge">Mongoose</span>
+        <span class="tech-badge">JWT</span>
+      </div>
+      <h4>Endpoints</h4>
+      <div class="endpoints">
+        <div class="endpoint"><span class="method method-post">POST</span> /login</div>
+        <div class="endpoint"><span class="method method-post">POST</span> /register</div>
+        <div class="endpoint"><span class="method method-get">GET</span> /users</div>
+        <div class="endpoint"><span class="method method-post">POST</span> /users</div>
+        <div class="endpoint"><span class="method method-put">PUT</span> /users/:id</div>
+        <div class="endpoint"><span class="method method-delete">DEL</span> /users/:id</div>
+        <div class="endpoint"><span class="method method-get">GET</span> /projects</div>
+        <div class="endpoint"><span class="method method-post">POST</span> /projects</div>
+        <div class="endpoint"><span class="method method-get">GET</span> /projects/search</div>
+        <div class="endpoint"><span class="method method-put">PUT</span> /projects/:id</div>
+        <div class="endpoint"><span class="method method-delete">DEL</span> /projects/:id</div>
+        <div class="endpoint"><span class="method method-get">GET</span> /categories</div>
+        <div class="endpoint"><span class="method method-post">POST</span> /categories</div>
+        <div class="endpoint"><span class="method method-put">PUT</span> /categories/:id</div>
+        <div class="endpoint"><span class="method method-delete">DEL</span> /categories/:id</div>
+        <div class="endpoint"><span class="method method-get">GET</span> /tasks</div>
+        <div class="endpoint"><span class="method method-post">POST</span> /tasks</div>
+        <div class="endpoint"><span class="method method-put">PUT</span> /tasks/:id</div>
+        <div class="endpoint"><span class="method method-delete">DEL</span> /tasks/:id</div>
+        <div class="endpoint"><span class="method method-post">POST</span> /tasks/:id/comments</div>
+      </div>
+    </div>
+
+    <!-- service_tache -->
+    <div class="detail-card">
+      <div class="detail-header">
+        <span class="icon">✅</span>
+        <h3>service_tache</h3>
+        <span class="port-badge">:5003</span>
+      </div>
+      <p>
+        Microservice dédié aux tâches et commentaires. Utilisé par le Kanban Board pour le drag & drop
+        des tâches entre colonnes (todo → in-progress → done). Fournit aussi la gestion des commentaires.
+      </p>
+      <div class="tech-list">
+        <span class="tech-badge">Express</span>
+        <span class="tech-badge">MongoDB</span>
+        <span class="tech-badge">Mongoose</span>
+      </div>
+      <h4>Endpoints</h4>
+      <div class="endpoints">
+        <div class="endpoint"><span class="method method-post">POST</span> /tasks</div>
+        <div class="endpoint"><span class="method method-get">GET</span> /tasks</div>
+        <div class="endpoint"><span class="method method-put">PUT</span> /tasks/:id</div>
+        <div class="endpoint"><span class="method method-delete">DEL</span> /tasks/:id</div>
+        <div class="endpoint"><span class="method method-put">PUT</span> /tasks/status/:id</div>
+        <div class="endpoint"><span class="method method-post">POST</span> /tasks/:taskId/comments</div>
+        <div class="endpoint"><span class="method method-get">GET</span> /tasks/:taskId/comments</div>
+      </div>
+    </div>
+
+    <!-- service-messages -->
+    <div class="detail-card">
+      <div class="detail-header">
+        <span class="icon">💬</span>
+        <h3>service-messages</h3>
+        <span class="port-badge">:3003</span>
+      </div>
+      <p>
+        Microservice de messagerie temps réel. Combine une API REST pour charger l'historique
+        des messages et Socket.IO pour l'envoi/réception en temps réel. Chaque projet est un salon (room).
+        L'authentification se fait par JWT dans les headers REST et dans le handshake Socket.IO.
+      </p>
+      <div class="tech-list">
+        <span class="tech-badge">Express</span>
+        <span class="tech-badge">MongoDB</span>
+        <span class="tech-badge">Mongoose</span>
+        <span class="tech-badge">Socket.IO</span>
+        <span class="tech-badge">JWT</span>
+      </div>
+      <h4>Endpoints REST</h4>
+      <div class="endpoints">
+        <div class="endpoint"><span class="method method-get">GET</span> /messages/:projectId</div>
+        <div class="endpoint"><span class="method method-post">POST</span> /messages</div>
+      </div>
+      <h4 style="margin-top: 12px;">Événements Socket.IO</h4>
+      <div class="socket-events">
+        <div class="socket-event"><span class="event-tag">EMIT</span> joinProject(projectId)</div>
+        <div class="socket-event"><span class="event-tag">EMIT</span> leaveProject(projectId)</div>
+        <div class="socket-event"><span class="event-tag">EMIT</span> sendMessage({ projectId, text })</div>
+        <div class="socket-event"><span class="event-tag">ON</span> newMessage(message)</div>
+      </div>
+    </div>
+
+    <!-- service-notifications -->
+    <div class="detail-card">
+      <div class="detail-header">
+        <span class="icon">🔔</span>
+        <h3>service-notifications</h3>
+        <span class="port-badge">:5004</span>
+      </div>
+      <p>
+        Microservice de notifications. Reçoit des notifications depuis les autres services
+        (gestion-projects, service_tache, service-messages) lorsqu'un projet est créé,
+        une tâche est assignée ou un message est envoyé. Stocke les notifications en base
+        et permet au frontend de les récupérer et de les marquer comme lues.
+      </p>
+      <div class="tech-list">
+        <span class="tech-badge">Express</span>
+        <span class="tech-badge">MongoDB</span>
+        <span class="tech-badge">Mongoose</span>
+        <span class="tech-badge">JWT</span>
+      </div>
+      <h4>Endpoints</h4>
+      <div class="endpoints">
+        <div class="endpoint"><span class="method method-get">GET</span> /notifications — Récupérer les notifications de l'utilisateur</div>
+        <div class="endpoint"><span class="method method-post">POST</span> /notifications — Créer une notification (appelé par les autres services)</div>
+        <div class="endpoint"><span class="method method-put">PUT</span> /notifications/:id/read — Marquer une notification comme lue</div>
+        <div class="endpoint"><span class="method method-put">PUT</span> /notifications/read-all — Marquer toutes les notifications comme lues</div>
+      </div>
+      <h4 style="margin-top: 12px;">Déclencheurs</h4>
+      <div class="socket-events">
+        <div class="socket-event"><span class="event-tag">TRIG</span> Création d'un projet → notifie tous les utilisateurs</div>
+        <div class="socket-event"><span class="event-tag">TRIG</span> Création d'une tâche → notifie l'utilisateur assigné</div>
+        <div class="socket-event"><span class="event-tag">TRIG</span> Message envoyé → notifie les membres du projet</div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ═══════ INTER-SERVICE CONNECTIONS ═══════ -->
+  <section class="interservice-section">
+    <h2>🔗 Communication inter-services</h2>
+
+    <div class="connection-grid">
+      <div class="connection-row">
+        <span class="conn-source">Frontend :5173</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-target">auth-service :5001</span>
+        <span class="conn-protocol">HTTP (Axios)</span>
+        <span class="conn-trigger">Login, Register</span>
+      </div>
+      <div class="connection-row">
+        <span class="conn-source">Frontend :5173</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-target">gestion-projects :3000</span>
+        <span class="conn-protocol">HTTP (Axios)</span>
+        <span class="conn-trigger">Projets, Catégories, Users, Tasks</span>
+      </div>
+      <div class="connection-row">
+        <span class="conn-source">Frontend :5173</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-target">service_tache :5003</span>
+        <span class="conn-protocol">HTTP (Axios)</span>
+        <span class="conn-trigger">Kanban CRUD tâches</span>
+      </div>
+      <div class="connection-row">
+        <span class="conn-source">Frontend :5173</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-target">service-messages :3003</span>
+        <span class="conn-protocol">HTTP + WebSocket</span>
+        <span class="conn-trigger">Chat temps réel + historique</span>
+      </div>
+      <div class="connection-row">
+        <span class="conn-source">Frontend :5173</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-target">service-notifications :5004</span>
+        <span class="conn-protocol">HTTP (Axios)</span>
+        <span class="conn-trigger">Récupérer / marquer lu</span>
+      </div>
+      <div class="connection-row" style="border-color: #fbbf2444;">
+        <span class="conn-source" style="background: #9f123933; color: #fb7185;">gestion-projects :3000</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-target" style="background: #7e22ce33; color: #c084fc;">service-notifications :5004</span>
+        <span class="conn-protocol">HTTP POST</span>
+        <span class="conn-trigger">Création d'un projet</span>
+      </div>
+      <div class="connection-row" style="border-color: #fbbf2444;">
+        <span class="conn-source" style="background: #9f123933; color: #fb7185;">service_tache :5003</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-target" style="background: #7e22ce33; color: #c084fc;">service-notifications :5004</span>
+        <span class="conn-protocol">HTTP POST</span>
+        <span class="conn-trigger">Création / assignation tâche</span>
+      </div>
+      <div class="connection-row" style="border-color: #fbbf2444;">
+        <span class="conn-source" style="background: #9f123933; color: #fb7185;">service-messages :3003</span>
+        <span class="conn-arrow">→</span>
+        <span class="conn-target" style="background: #7e22ce33; color: #c084fc;">service-notifications :5004</span>
+        <span class="conn-protocol">HTTP POST</span>
+        <span class="conn-trigger">Message envoyé dans un projet</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════ DATA MODELS ═══════ -->
+  <section class="models-section">
+    <h2>📊 Modèles de données &amp; relations</h2>
+
+    <div class="models-grid">
+      <!-- User -->
+      <div class="model-card">
+        <h4>👤 User <span class="model-service">gestion-projects / service-messages</span></h4>
+        <div class="model-fields">
+          <div class="model-field"><span class="field-name">_id</span> <span class="field-type">ObjectId</span></div>
+          <div class="model-field"><span class="field-name">username</span> <span class="field-type">String</span></div>
+          <div class="model-field"><span class="field-name">email</span> <span class="field-type">String</span></div>
+          <div class="model-field"><span class="field-name">password</span> <span class="field-type">String</span></div>
+          <div class="model-field"><span class="field-name">role</span> <span class="field-type">admin | manager | user</span></div>
+          <div class="model-field"><span class="field-name">status</span> <span class="field-type">active | inactive | banned</span></div>
+        </div>
+      </div>
+
+      <!-- Message -->
+      <div class="model-card">
+        <h4>💬 Message <span class="model-service">service-messages</span></h4>
+        <div class="model-fields">
+          <div class="model-field"><span class="field-name">_id</span> <span class="field-type">ObjectId</span></div>
+          <div class="model-field"><span class="field-name">text</span> <span class="field-type">String (required)</span></div>
+          <div class="model-field"><span class="field-name">user</span> <span class="field-ref">→ ref: User</span></div>
+          <div class="model-field"><span class="field-name">projectId</span> <span class="field-ref">→ ref: Project</span></div>
+          <div class="model-field"><span class="field-name">createdAt</span> <span class="field-type">Date</span></div>
+        </div>
+      </div>
+
+      <!-- Project -->
+      <div class="model-card">
+        <h4>📁 Project <span class="model-service">gestion-projects</span></h4>
+        <div class="model-fields">
+          <div class="model-field"><span class="field-name">_id</span> <span class="field-type">ObjectId</span></div>
+          <div class="model-field"><span class="field-name">name</span> <span class="field-type">String</span></div>
+          <div class="model-field"><span class="field-name">description</span> <span class="field-type">String</span></div>
+          <div class="model-field"><span class="field-name">status</span> <span class="field-type">String</span></div>
+          <div class="model-field"><span class="field-name">createdBy</span> <span class="field-ref">→ ref: User</span></div>
+          <div class="model-field"><span class="field-name">idCategory</span> <span class="field-ref">→ ref: Category</span></div>
+        </div>
+      </div>
+
+      <!-- Task -->
+      <div class="model-card">
+        <h4>✅ Task <span class="model-service">service_tache</span></h4>
+        <div class="model-fields">
+          <div class="model-field"><span class="field-name">_id</span> <span class="field-type">ObjectId</span></div>
+          <div class="model-field"><span class="field-name">title</span> <span class="field-type">String</span></div>
+          <div class="model-field"><span class="field-name">status</span> <span class="field-type">todo | in-progress | done</span></div>
+          <div class="model-field"><span class="field-name">assignedTo</span> <span class="field-ref">→ ref: User</span></div>
+          <div class="model-field"><span class="field-name">projectId</span> <span class="field-ref">→ ref: Project</span></div>
+          <div class="model-field"><span class="field-name">comments[]</span> <span class="field-ref">→ user ref: User</span></div>
+        </div>
+      </div>
+
+      <!-- Notification -->
+      <div class="model-card">
+        <h4>🔔 Notification <span class="model-service">service-notifications</span></h4>
+        <div class="model-fields">
+          <div class="model-field"><span class="field-name">_id</span> <span class="field-type">ObjectId</span></div>
+          <div class="model-field"><span class="field-name">type</span> <span class="field-type">String</span></div>
+          <div class="model-field"><span class="field-name">title</span> <span class="field-type">String</span></div>
+          <div class="model-field"><span class="field-name">message</span> <span class="field-type">String</span></div>
+          <div class="model-field"><span class="field-name">userId</span> <span class="field-ref">→ ref: User</span></div>
+          <div class="model-field"><span class="field-name">projectId</span> <span class="field-ref">→ ref: Project</span></div>
+          <div class="model-field"><span class="field-name">read</span> <span class="field-type">Boolean</span></div>
+        </div>
+      </div>
+
+      <!-- Category -->
+      <div class="model-card">
+        <h4>🏷️ Category <span class="model-service">gestion-projects</span></h4>
+        <div class="model-fields">
+          <div class="model-field"><span class="field-name">_id</span> <span class="field-type">ObjectId</span></div>
+          <div class="model-field"><span class="field-name">name</span> <span class="field-type">String</span></div>
+          <div class="model-field"><span class="field-name">description</span> <span class="field-type">String</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Relations -->
+    <div class="relation-box">
+      <h4>🔗 Relations entre modèles</h4>
+      <div class="relation-list">
+        <div class="relation-item">
+          <span class="rel-model">Message.user</span>
+          <span class="rel-arrow">→</span>
+          <span class="rel-model">User._id</span>
+          <span class="rel-desc">Chaque message est lié à l'utilisateur qui l'a envoyé (populate: username, email)</span>
+        </div>
+        <div class="relation-item">
+          <span class="rel-model">Message.projectId</span>
+          <span class="rel-arrow">→</span>
+          <span class="rel-model">Project._id</span>
+          <span class="rel-desc">Chaque message appartient à un projet (salon de chat)</span>
+        </div>
+        <div class="relation-item">
+          <span class="rel-model">Task.assignedTo</span>
+          <span class="rel-arrow">→</span>
+          <span class="rel-model">User._id</span>
+          <span class="rel-desc">Chaque tâche est assignée à un utilisateur</span>
+        </div>
+        <div class="relation-item">
+          <span class="rel-model">Task.projectId</span>
+          <span class="rel-arrow">→</span>
+          <span class="rel-model">Project._id</span>
+          <span class="rel-desc">Chaque tâche appartient à un projet</span>
+        </div>
+        <div class="relation-item">
+          <span class="rel-model">Task.comments[].user</span>
+          <span class="rel-arrow">→</span>
+          <span class="rel-model">User._id</span>
+          <span class="rel-desc">Chaque commentaire est lié à son auteur</span>
+        </div>
+        <div class="relation-item">
+          <span class="rel-model">Project.createdBy</span>
+          <span class="rel-arrow">→</span>
+          <span class="rel-model">User._id</span>
+          <span class="rel-desc">Chaque projet est créé par un utilisateur</span>
+        </div>
+        <div class="relation-item">
+          <span class="rel-model">Project.idCategory</span>
+          <span class="rel-arrow">→</span>
+          <span class="rel-model">Category._id</span>
+          <span class="rel-desc">Chaque projet appartient à une catégorie</span>
+        </div>
+        <div class="relation-item">
+          <span class="rel-model">Notification.userId</span>
+          <span class="rel-arrow">→</span>
+          <span class="rel-model">User._id</span>
+          <span class="rel-desc">Chaque notification est destinée à un utilisateur</span>
+        </div>
+        <div class="relation-item">
+          <span class="rel-model">Notification.projectId</span>
+          <span class="rel-arrow">→</span>
+          <span class="rel-model">Project._id</span>
+          <span class="rel-desc">Chaque notification est liée à un projet</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  ProjetCloud — Architecture Microservices &bull; 2026
+</footer>
+
+</body>
+</html>
