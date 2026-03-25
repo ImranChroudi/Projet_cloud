@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
-import API from '../api/axios';
+import API from '../api/axiosauth';
 import {
   Search,
   UserPlus,
   Edit3,
   Trash2,
-  ShieldCheck,
-  ShieldOff,
   Lock,
   Unlock,
   X,
@@ -19,6 +17,7 @@ export default function UsersPage() {
   const [showForm, setShowForm] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
   const [form, setForm] = useState({
     username: '',
     email: '',
@@ -30,57 +29,84 @@ export default function UsersPage() {
     loadUsers();
   }, []);
 
+  const normalizeUser = (u) => ({
+    ...u,
+    _id: u.id,
+    username: u.name,
+    status: u.is_blocked ? 'banned' : 'active',
+  });
+
   const loadUsers = async () => {
     setLoading(true);
     try {
       const res = await API.get('/users');
-      setUsers(res.data);
+      setUsers(res.data.map(normalizeUser));
     } catch (err) {
-      console.error('Error loading users:', err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
+  // ADD / UPDATE
+ 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
       if (editUser) {
-        const data = { username: form.username, email: form.email, role: form.role };
+        const data = {
+          name: form.username,
+          email: form.email,
+          role: form.role,
+        };
+
         if (form.password) data.password = form.password;
+
         await API.put(`/users/${editUser._id}`, data);
       } else {
-        await API.post('/users', form);
+        await API.post('/users', {
+          name: form.username,
+          email: form.email,
+          password: form.password,
+          role: form.role,
+        });
       }
-      setShowForm(false);
-      setEditUser(null);
-      setForm({ username: '', email: '', password: '', role: 'user' });
+
+      resetForm();
       loadUsers();
     } catch (err) {
-      console.error('Error saving user:', err);
+      console.error(err);
     }
   };
 
+  // DELETE
   const handleDelete = async (id) => {
     if (!window.confirm('Supprimer cet utilisateur ?')) return;
+
     try {
       await API.delete(`/users/${id}`);
       loadUsers();
     } catch (err) {
-      console.error('Error deleting user:', err);
+      console.error(err);
     }
   };
 
+  // BLOCK / UNBLOCK
   const handleToggleStatus = async (user) => {
-    const newStatus = user.status === 'active' ? 'banned' : 'active';
     try {
-      await API.put(`/users/${user._id}`, { status: newStatus });
+      if (user.status === 'active') {
+        await API.put(`/users/block/${user._id}`);
+      } else {
+        await API.put(`/users/unblock/${user._id}`);
+      }
       loadUsers();
     } catch (err) {
-      console.error('Error toggling status:', err);
+      console.error(err);
     }
   };
 
+  // EDIT
   const openEdit = (user) => {
     setEditUser(user);
     setForm({
@@ -92,12 +118,26 @@ export default function UsersPage() {
     setShowForm(true);
   };
 
+  const resetForm = () => {
+    setShowForm(false);
+    setEditUser(null);
+    setForm({
+      username: '',
+      email: '',
+      password: '',
+      role: 'user',
+    });
+  };
+
+  // FILTER
   const filteredUsers = users.filter((u) => {
     const matchSearch =
       !search ||
-      u.username?.toLowerCase().includes(search.toLowerCase()) ||
-      u.email?.toLowerCase().includes(search.toLowerCase());
+      u.username.toLowerCase().includes(search.toLowerCase()) ||
+      u.email.toLowerCase().includes(search.toLowerCase());
+
     const matchRole = !roleFilter || u.role === roleFilter;
+
     return matchSearch && matchRole;
   });
 
@@ -109,7 +149,6 @@ export default function UsersPage() {
 
   const statusConfig = {
     active: { label: 'Actif', className: 'user-status-active' },
-    inactive: { label: 'Inactif', className: 'user-status-inactive' },
     banned: { label: 'Bloqué', className: 'user-status-banned' },
   };
 
@@ -123,8 +162,7 @@ export default function UsersPage() {
         <button
           className="btn btn-primary btn-icon"
           onClick={() => {
-            setEditUser(null);
-            setForm({ username: '', email: '', password: '', role: 'user' });
+            resetForm();
             setShowForm(true);
           }}
         >
@@ -133,7 +171,7 @@ export default function UsersPage() {
         </button>
       </div>
 
-      {/* Search & filters */}
+      {/* FILTER */}
       <div className="card" style={{ marginBottom: '20px' }}>
         <div className="filter-row">
           <div className="filter-field" style={{ flex: 1 }}>
@@ -145,6 +183,7 @@ export default function UsersPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
@@ -157,24 +196,22 @@ export default function UsersPage() {
         </div>
       </div>
 
-      {/* User Form Modal */}
+      {/* MODAL */}
       {showForm && (
-        <div className="modal-overlay" onClick={() => setShowForm(false)}>
+        <div className="modal-overlay" onClick={resetForm}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>
-                {editUser ? '✏️ Modifier l\'utilisateur' : '👤 Nouvel utilisateur'}
+                {editUser ? "Modifier l'utilisateur" : 'Nouvel utilisateur'}
               </h2>
-              <button
-                className="modal-close"
-                onClick={() => setShowForm(false)}
-              >
+              <button className="modal-close" onClick={resetForm}>
                 <X size={20} />
               </button>
             </div>
+
             <form onSubmit={handleSubmit} className="user-form">
               <div className="form-group">
-                <label>Nom d&apos;utilisateur</label>
+                <label>Nom d'utilisateur</label>
                 <input
                   type="text"
                   value={form.username}
@@ -182,19 +219,21 @@ export default function UsersPage() {
                     setForm({ ...form, username: e.target.value })
                   }
                   required
-                  placeholder="Nom d'utilisateur"
                 />
               </div>
+
               <div className="form-group">
                 <label>Email</label>
                 <input
                   type="email"
                   value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, email: e.target.value })
+                  }
                   required
-                  placeholder="Email"
                 />
               </div>
+
               <div className="form-group">
                 <label>
                   Mot de passe {editUser && '(laisser vide pour ne pas changer)'}
@@ -205,22 +244,24 @@ export default function UsersPage() {
                   onChange={(e) =>
                     setForm({ ...form, password: e.target.value })
                   }
-                  placeholder="Mot de passe"
                   {...(!editUser && { required: true })}
-                  minLength={6}
                 />
               </div>
+
               <div className="form-group">
                 <label>Rôle</label>
                 <select
                   value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, role: e.target.value })
+                  }
                 >
                   <option value="user">Utilisateur</option>
                   <option value="manager">Manager</option>
                   <option value="admin">Admin</option>
                 </select>
               </div>
+
               <div className="form-actions">
                 <button type="submit" className="btn btn-primary">
                   {editUser ? 'Modifier' : 'Créer'}
@@ -228,7 +269,7 @@ export default function UsersPage() {
                 <button
                   type="button"
                   className="btn btn-ghost"
-                  onClick={() => setShowForm(false)}
+                  onClick={resetForm}
                 >
                   Annuler
                 </button>
@@ -238,10 +279,9 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* Users Table */}
+      {/* TABLE */}
       {loading ? (
         <div className="loading-state">
-          <div className="spinner"></div>
           <p>Chargement...</p>
         </div>
       ) : (
@@ -254,79 +294,56 @@ export default function UsersPage() {
                   <th>Email</th>
                   <th>Rôle</th>
                   <th>Statut</th>
-                  <th>Inscrit le</th>
                   <th>Actions</th>
                 </tr>
               </thead>
+
               <tbody>
                 {filteredUsers.map((u) => (
                   <tr key={u._id}>
-                    <td>
-                      <div className="user-cell">
-                        <div className="user-table-avatar">
-                          {u.username?.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="user-table-name">{u.username}</span>
-                      </div>
-                    </td>
+                    <td>{u.username}</td>
                     <td>{u.email}</td>
+
                     <td>
                       <span
-                        className={`role-badge ${roleConfig[u.role]?.className || ''}`}
+                        className={`role-badge ${roleConfig[u.role]?.className}`}
                       >
-                        {roleConfig[u.role]?.label || u.role}
+                        {roleConfig[u.role]?.label}
                       </span>
                     </td>
+
                     <td>
                       <span
-                        className={`user-status ${statusConfig[u.status]?.className || ''}`}
+                        className={`user-status ${statusConfig[u.status]?.className}`}
                       >
-                        {statusConfig[u.status]?.label || u.status}
+                        {statusConfig[u.status]?.label}
                       </span>
                     </td>
-                    <td>
-                      {u.createdAt
-                        ? new Date(u.createdAt).toLocaleDateString('fr-FR')
-                        : '—'}
-                    </td>
+
                     <td>
                       <div className="table-actions">
-                        <button
-                          className="icon-btn"
-                          onClick={() => openEdit(u)}
-                          title="Modifier"
-                        >
-                          <Edit3 size={16} />
-                        </button>
-                        <button
-                          className="icon-btn"
-                          onClick={() => handleToggleStatus(u)}
-                          title={
-                            u.status === 'active' ? 'Bloquer' : 'Débloquer'
-                          }
-                        >
-                          {u.status === 'active' ? (
-                            <Lock size={16} />
-                          ) : (
-                            <Unlock size={16} />
-                          )}
-                        </button>
-                        <button
-                          className="icon-btn icon-btn-danger"
-                          onClick={() => handleDelete(u._id)}
-                          title="Supprimer"
-                        >
-                          <Trash2 size={16} />
-                        </button>
+  <button className="icon-btn icon-edit" onClick={() => openEdit(u)}>
+    <Edit3 size={16} />
+  </button>
+
+  <button
+    className={`icon-btn ${u.status === 'active' ? 'icon-lock' : 'icon-unlock'}`}
+    onClick={() => handleToggleStatus(u)}
+  >
+    {u.status === 'active' ? <Lock size={16} /> : <Unlock size={16} />}
+  </button>
+
+  <button className="icon-btn icon-delete" onClick={() => handleDelete(u._id)}>
+    <Trash2 size={16} />
+  </button>
                       </div>
                     </td>
                   </tr>
                 ))}
+
                 {filteredUsers.length === 0 && (
                   <tr>
-                    <td colSpan="6" className="empty-table">
-                      Aucun utilisateur trouvé
-                    </td>
+                    <td colSpan="5">Aucun utilisateur</td>
                   </tr>
                 )}
               </tbody>

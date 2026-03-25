@@ -22,9 +22,8 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  // LOGIN (fix email)
 const login = async (email, password) => {
-  const res = await API.post("/auth/login", { email, password }); // ✅ خاص await + res
+  const res = await API.post("/auth/login", { email, password }); 
 
   const { token: newToken, user: userData } = res.data;
 

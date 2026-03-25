@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { LogIn, Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
-  const [email, setEmail] = useState(''); // ✅ بدل username
+  const [email, setEmail] = useState(''); 
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [error, setError] = useState('');
