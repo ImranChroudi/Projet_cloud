@@ -41,21 +41,18 @@ const loadUsers = async () => {
   try {
     const res = await API.get('/users');
 
-    console.log("DATA:", res.data); // 👈 مهم باش تشوف
+    console.log("DATA:", res.data);
 
-    // ✔️ الحالة 1: array مباشرة
     if (Array.isArray(res.data)) {
       setUsers(res.data.map(normalizeUser));
     }
 
-    // ✔️ الحالة 2: object فيه users
     else if (Array.isArray(res.data.users)) {
       setUsers(res.data.users.map(normalizeUser));
     }
 
-    // ❌ أي حاجة أخرى
     else {
-      console.error("❌ Data machi array:", res.data);
+      console.error("Data machi array:", res.data);
       setUsers([]);
     }
 
@@ -97,9 +94,7 @@ const loadUsers = async () => {
     }
   };
 
-  // =====================
   // DELETE
-  // =====================
   const handleDelete = async (id) => {
     if (!window.confirm('Supprimer cet utilisateur ?')) return;
 
@@ -111,9 +106,7 @@ const loadUsers = async () => {
     }
   };
 
-  // =====================
   // BLOCK / UNBLOCK
-  // =====================
   const handleToggleStatus = async (user) => {
     try {
       if (user.status === 'active') {
@@ -127,9 +120,7 @@ const loadUsers = async () => {
     }
   };
 
-  // =====================
   // EDIT
-  // =====================
   const openEdit = (user) => {
     setEditUser(user);
     setForm({
@@ -152,9 +143,7 @@ const loadUsers = async () => {
     });
   };
 
-  // =====================
   // FILTER
-  // =====================
   const filteredUsers = users.filter((u) => {
     const matchSearch =
       !search ||

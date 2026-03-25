@@ -27,6 +27,9 @@ const login = async (email, password) => {
 
   const { token: newToken, user: userData } = res.data;
 
+    if (userData?.is_blocked === 0) {
+    throw new Error("Compte bloqué par l'admin");
+  }
   localStorage.setItem("token", newToken);
   setToken(newToken);
 
@@ -59,8 +62,6 @@ await API.post("/auth/register", { name, email, password });  };
     setUser(null);
   };
 
-  // const isAdmin = () => user?.role === 'admin';
-  // const isManager = () => user?.role === 'manager' || user?.role === 'admin';
 
     const isAdmin = () => true;
    const isManager = () => true;

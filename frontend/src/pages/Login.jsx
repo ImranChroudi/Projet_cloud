@@ -22,7 +22,11 @@ export default function Login() {
       await login(email, password); 
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Erreur de connexion');
+if (err.response?.status === 403) {
+    setError("Compte bloqué par l'admin");
+  } else {
+    setError(err.response?.data?.message || 'Erreur de connexion');
+  }
     } finally {
       setLoading(false);
     }
