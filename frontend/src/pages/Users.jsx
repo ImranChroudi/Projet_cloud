@@ -36,18 +36,35 @@ export default function UsersPage() {
     status: u.is_blocked ? 'banned' : 'active',
   });
 
-  const loadUsers = async () => {
-    setLoading(true);
-    try {
-      const res = await API.get('/users');
-      setUsers(res.data.map(normalizeUser));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+const loadUsers = async () => {
+  setLoading(true);
+  try {
+    const res = await API.get('/users');
 
+    console.log("DATA:", res.data); // 👈 مهم باش تشوف
+
+    // ✔️ الحالة 1: array مباشرة
+    if (Array.isArray(res.data)) {
+      setUsers(res.data.map(normalizeUser));
+    }
+
+    // ✔️ الحالة 2: object فيه users
+    else if (Array.isArray(res.data.users)) {
+      setUsers(res.data.users.map(normalizeUser));
+    }
+
+    // ❌ أي حاجة أخرى
+    else {
+      console.error("❌ Data machi array:", res.data);
+      setUsers([]);
+    }
+
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
   // ADD / UPDATE
  
   const handleSubmit = async (e) => {
@@ -80,7 +97,9 @@ export default function UsersPage() {
     }
   };
 
+  // =====================
   // DELETE
+  // =====================
   const handleDelete = async (id) => {
     if (!window.confirm('Supprimer cet utilisateur ?')) return;
 
@@ -92,7 +111,9 @@ export default function UsersPage() {
     }
   };
 
+  // =====================
   // BLOCK / UNBLOCK
+  // =====================
   const handleToggleStatus = async (user) => {
     try {
       if (user.status === 'active') {
@@ -106,7 +127,9 @@ export default function UsersPage() {
     }
   };
 
+  // =====================
   // EDIT
+  // =====================
   const openEdit = (user) => {
     setEditUser(user);
     setForm({
@@ -129,7 +152,9 @@ export default function UsersPage() {
     });
   };
 
+  // =====================
   // FILTER
+  // =====================
   const filteredUsers = users.filter((u) => {
     const matchSearch =
       !search ||
@@ -322,20 +347,20 @@ export default function UsersPage() {
 
                     <td>
                       <div className="table-actions">
-  <button className="icon-btn icon-edit" onClick={() => openEdit(u)}>
-    <Edit3 size={16} />
-  </button>
+                      <button className="icon-btn icon-edit" onClick={() => openEdit(u)}>
+  <Edit3 size={16} />
+</button>
 
-  <button
-    className={`icon-btn ${u.status === 'active' ? 'icon-lock' : 'icon-unlock'}`}
-    onClick={() => handleToggleStatus(u)}
-  >
-    {u.status === 'active' ? <Lock size={16} /> : <Unlock size={16} />}
-  </button>
+<button
+  className={`icon-btn ${u.status === 'active' ? 'icon-lock' : 'icon-unlock'}`}
+  onClick={() => handleToggleStatus(u)}
+>
+  {u.status === 'active' ? <Lock size={16} /> : <Unlock size={16} />}
+</button>
 
-  <button className="icon-btn icon-delete" onClick={() => handleDelete(u._id)}>
-    <Trash2 size={16} />
-  </button>
+<button className="icon-btn icon-delete" onClick={() => handleDelete(u._id)}>
+  <Trash2 size={16} />
+</button>
                       </div>
                     </td>
                   </tr>

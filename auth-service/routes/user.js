@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db");
 const bcrypt = require("bcrypt");
-const {authentificationToken} = require("../authMiddleware/middlewere");
+const authentificationToken= require("../authMiddleware/middlewere");
 
 
 // GET ALL USERS
