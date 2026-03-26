@@ -1,100 +1,129 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
-const authentificationToken = require("../authMiddleware/middlewere");
+const bcrypt = require("bcrypt");
+const authentificationToken= require("../authMiddleware/middlewere");
 
-// all users
-router.get("/",authentificationToken, async (req, res) => {
+
+// GET ALL USERS
+
+router.get("/", authentificationToken, async (req, res) => {
   try {
-
-    const [users] = await db.query("SELECT id,name,email,role,is_blocked FROM users");
+    const [users] = await db.query(
+      "SELECT id, name, email, role, is_blocked, created_at FROM users"
+    );
 
     res.json(users);
-
   } catch (error) {
-
     console.log(error);
-    res.json({ message: "Erreur serveur" });
-
+    res.status(500).json({ message: "Erreur serveur" });
   }
 });
 
 
-// users by id
-router.get("/:id", async (req, res) => {
+// GET USER BY ID
 
+router.get("/:id", authentificationToken, async (req, res) => {
   try {
-
     const { id } = req.params;
 
     const [user] = await db.query(
-      "SELECT id,name,email,role,is_blocked FROM users WHERE id=?",
+      "SELECT id, name, email, role, is_blocked FROM users WHERE id=?",
       [id]
     );
 
     if (user.length === 0) {
-      return res.json({ message: "Utilisateur non trouvé" });
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
     }
 
     res.json(user[0]);
-
   } catch (error) {
-
     console.log(error);
-    res.json({ message: "Erreur serveur" });
-
+    res.status(500).json({ message: "Erreur serveur" });
   }
 });
 
 
-// update user
-router.put("/:id", async (req, res) => {
+// ADD USER
 
+router.post("/", authentificationToken, async (req, res) => {
   try {
+    const { name, email, password, role } = req.body;
 
-    const { id } = req.params;
-    const { name, email, role } = req.body;
-
-    await db.query(
-      "UPDATE users SET name=?, email=?, role=? WHERE id=?",
-      [name, email, role, id]
+    // check email exist
+    const [exist] = await db.query(
+      "SELECT id FROM users WHERE email=?",
+      [email]
     );
 
-    res.json({ message: "Utilisateur mis à jour" });
+    if (exist.length > 0) {
+      return res.status(400).json({ message: "Email déjà utilisé" });
+    }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await db.query(
+      "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
+      [name, email, hashedPassword, role]
+    );
+
+    res.json({ message: "Utilisateur ajouté avec succès" });
   } catch (error) {
-
     console.log(error);
-    res.json({ message: "Erreur serveur" });
-
+    res.status(500).json({ message: "Erreur serveur" });
   }
 });
 
 
-// delete user
-router.delete("/:id", async (req, res) => {
+// UPDATE USER
 
+router.put("/:id", authentificationToken, async (req, res) => {
   try {
+    const { id } = req.params;
+    const { name, email, role, password } = req.body;
 
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      await db.query(
+        "UPDATE users SET name=?, email=?, role=?, password=? WHERE id=?",
+        [name, email, role, hashedPassword, id]
+      );
+    } else {
+      await db.query(
+        "UPDATE users SET name=?, email=?, role=? WHERE id=?",
+        [name, email, role, id]
+      );
+    }
+
+    res.json({ message: "Utilisateur mis à jour" });
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+});
+
+
+// DELETE USER
+
+router.delete("/:id", authentificationToken, async (req, res) => {
+  try {
     const { id } = req.params;
 
     await db.query("DELETE FROM users WHERE id=?", [id]);
 
     res.json({ message: "Utilisateur supprimé" });
-
   } catch (error) {
-
     console.log(error);
-    res.json({ message: "Erreur serveur" });
-
+    res.status(500).json({ message: "Erreur serveur" });
   }
 });
 
-// block user
-router.put("/block/:id", async (req, res) => {
 
+//  BLOCK USER
+
+router.put("/block/:id", authentificationToken, async (req, res) => {
   try {
-
     const { id } = req.params;
 
     await db.query(
@@ -103,21 +132,17 @@ router.put("/block/:id", async (req, res) => {
     );
 
     res.json({ message: "Utilisateur bloqué" });
-
   } catch (error) {
-
     console.log(error);
-    res.json({ message: "Erreur serveur" });
-
+    res.status(500).json({ message: "Erreur serveur" });
   }
 });
 
 
-// unblock user
-router.put("/unblock/:id", async (req, res) => {
+//  UNBLOCK USER
 
+router.put("/unblock/:id", authentificationToken, async (req, res) => {
   try {
-
     const { id } = req.params;
 
     await db.query(
@@ -126,41 +151,30 @@ router.put("/unblock/:id", async (req, res) => {
     );
 
     res.json({ message: "Utilisateur débloqué" });
-
   } catch (error) {
-
     console.log(error);
-    res.json({ message: "Erreur serveur" });
-
+    res.status(500).json({ message: "Erreur serveur" });
   }
 });
 
 
-// search users
-router.get("/search/:keyword", async (req, res) => {
-
+//  SEARCH USERS
+router.get("/search/:keyword", authentificationToken, async (req, res) => {
   try {
-
     const { keyword } = req.params;
 
     const [users] = await db.query(
-      `SELECT id,name,email,role,is_blocked
+      `SELECT id, name, email, role, is_blocked
        FROM users
-       WHERE name LIKE ? 
-       OR email LIKE ?
-       OR role LIKE ?`,
+       WHERE name LIKE ? OR email LIKE ? OR role LIKE ?`,
       [`%${keyword}%`, `%${keyword}%`, `%${keyword}%`]
     );
 
     res.json(users);
-
   } catch (error) {
-
     console.log(error);
-    res.json({ message: "Erreur serveur" });
-
+    res.status(500).json({ message: "Erreur serveur" });
   }
 });
-
 
 module.exports = router;

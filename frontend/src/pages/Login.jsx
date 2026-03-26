@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { LogIn, Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
-  const [email, setEmail] = useState(''); // ✅ بدل username
+  const [email, setEmail] = useState(''); 
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [error, setError] = useState('');
@@ -22,7 +22,11 @@ export default function Login() {
       await login(email, password); 
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Erreur de connexion');
+if (err.response?.status === 403) {
+    setError("Compte bloqué par l'admin");
+  } else {
+    setError(err.response?.data?.message || 'Erreur de connexion');
+  }
     } finally {
       setLoading(false);
     }

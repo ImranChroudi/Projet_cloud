@@ -36,6 +36,12 @@ router.post("/login", async (req, res) => {
     }
 
     const user = rows[0];
+     const u = rows[0];
+
+  if (u.is_blocked === 1) {
+    return res.status(403).json({ message: "Compte bloqué" });
+  }
+
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) {
@@ -43,7 +49,7 @@ router.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user.id, email: user.email , username: user.name},
+      { id:user.id, email: user.email ,username: user.name,role:user.role},
       SECRET,
       { expiresIn: "1h" }
     );
@@ -55,7 +61,8 @@ router.post("/login", async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        username: user.name
+        username: user.name,
+        role: user.role
       }
     });
 

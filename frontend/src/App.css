@@ -1771,7 +1771,7 @@ tbody tr:hover {
 
 .table-actions {
   display: flex;
-  gap: 4px;
+  gap: 10px;
 }
 
 .empty-table {
@@ -2274,4 +2274,50 @@ tbody tr:hover {
   .category-grid {
     grid-template-columns: 1fr;
   }
+}
+
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(6px);
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.icon-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.1);
+}
+
+.icon-btn svg {
+  color: #555;
+  transition: all 0.25s ease;
+}
+
+.icon-edit:hover svg {
+  color: #3498db;
+  filter: drop-shadow(0 0 6px rgba(52,152,219,0.5));
+}
+
+.icon-delete:hover svg {
+  color: #e74c3c;
+  filter: drop-shadow(0 0 6px rgba(231,76,60,0.5));
+}
+
+.icon-lock:hover svg {
+  color: #f39c12;
+  filter: drop-shadow(0 0 6px rgba(243,156,18,0.5));
+}
+
+.icon-unlock:hover svg {
+  color: #2ecc71;
+  filter: drop-shadow(0 0 6px rgba(46,204,113,0.5));
 }

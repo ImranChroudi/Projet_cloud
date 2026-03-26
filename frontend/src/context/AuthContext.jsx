@@ -22,12 +22,14 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  // LOGIN (fix email)
 const login = async (email, password) => {
-  const res = await API.post("/auth/login", { email, password }); // ✅ خاص await + res
+  const res = await API.post("/auth/login", { email, password }); 
 
   const { token: newToken, user: userData } = res.data;
 
+    if (userData?.is_blocked === 0) {
+    throw new Error("Compte bloqué par l'admin");
+  }
   localStorage.setItem("token", newToken);
   setToken(newToken);
 
@@ -50,8 +52,8 @@ const login = async (email, password) => {
 };
 
   //  REGISTER (fix name)
-  const register = async (name, email, password) => {
-await API.post("/auth/register", { name, email, password });  };
+  const register = async (name, email, password,role) => {
+await API.post("/auth/register", { name, email, password,role });  };
 
   const logout = () => {
     localStorage.removeItem("token");
@@ -60,10 +62,10 @@ await API.post("/auth/register", { name, email, password });  };
     setUser(null);
   };
 
-  // const isAdmin = () => user?.role === 'admin';
-  // const isManager = () => user?.role === 'manager' || user?.role === 'admin';
 
-    const isAdmin = () => true;
+  const isAdmin = () => {
+  return user?.role === "admin";
+};
    const isManager = () => true;
 
   return (
