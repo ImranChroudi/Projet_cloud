@@ -1,7 +1,7 @@
 /* ==========================================
    ProjetCloud — Modern Light Design System
    ========================================== */
-
+@import 'react-toastify/dist/ReactToastify.css';
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ---- CSS Variables ---- */
@@ -148,8 +148,13 @@ button {
 }
 
 .auth-logo {
-  font-size: 48px;
   margin-bottom: 12px;
+}
+
+.auth-logo img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
 }
 
 .auth-header h1 {
@@ -365,11 +370,12 @@ button {
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
 }
 
-.brand-icon {
-  font-size: 28px;
+.brand-icon-img {
+  width: 120px;
+  height: auto;
+  object-fit: contain;
 }
 
 .sidebar-brand span {

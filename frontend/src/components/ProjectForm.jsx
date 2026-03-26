@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import API from '../api/axios';
+import { toast } from 'react-toastify';
 
 export default function ProjectForm({ current, onSaved, onCancel }) {
   const [categories, setCategories] = useState([]);
@@ -41,6 +42,7 @@ export default function ProjectForm({ current, onSaved, onCancel }) {
   const fetchCategories = async () => {
     try {
       const res = await API.get('/categories');
+
       setCategories(res.data);
     } catch (err) {
       console.error('Erreur chargement catégories:', err);
@@ -55,7 +57,12 @@ export default function ProjectForm({ current, onSaved, onCancel }) {
     e.preventDefault();
     try {
       if (current) {
-        await API.put(`/projects/${current._id}`, form);
+        const res =await API.put(`/projects/${current._id}`, form);
+        if(!res.data.success){
+          toast.error(res.data.message || "Erreur lors de la mise à jour du projet");
+          return;
+        }
+
       } else {
         await API.post('/projects', form);
       }

@@ -38,8 +38,7 @@ export default function Sidebar({ collapsed, onToggle }) {
       <div className="sidebar-header">
         {!collapsed && (
           <div className="sidebar-brand">
-            <div className="brand-icon">📋</div>
-            <span>ProjetCloud</span>
+            <img src="/logo.png" alt="ProjetCloud" className="brand-icon-img" />
           </div>
         )}
         <button className="sidebar-toggle" onClick={onToggle}>

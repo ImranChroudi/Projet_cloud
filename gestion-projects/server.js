@@ -12,7 +12,7 @@ import authMidlleware from "./midllewares/auth.js";
 dotenv.config();
 const app = express();
 const PORT = 3000;
-const NOTIFICATION_URL = process.env.NOTIFICATION_URL || "http://localhost:3004";
+const NOTIFICATION_URL = process.env.NOTIFICATION_URL || "http://localhost:3003";
 
 const sendNotification = async (type, title, message, userId, projectId) => {
   try {
@@ -119,7 +119,6 @@ app.post("/projects", authMidlleware, async (req, res) => {
 });
 
 app.get("/projects", authMidlleware, async (req, res) => {
-  console.log("nnnnnn")
   try {
     const projects = await Project.find();
     res.json(projects);
@@ -144,14 +143,15 @@ app.get("/projects/search", async (req, res) => {
 });
 
 app.put("/projects/:id", authMidlleware, async (req, res) => {
+  console.log("Updating project:", req.params.id, req.body);
   try {
     const project = await Project.findOne({ _id: req.params.id, createdBy: req.user.id });
-    if (!project) return res.status(404).json({ message: "Projet non trouvé" });
+    if (!project) return res.json({success : false , message: "Projet non trouvé" });
     Object.assign(project, req.body);
     await project.save();
-    res.json(project);
+    res.json({success: true, project});
   } catch (error) {
-    res.status(500).json({ message: "Erreur serveur", error });
+    res.status(500).json({success: false, message: "Erreur serveur", error });
   }
 });
 
@@ -166,7 +166,6 @@ app.delete("/projects/:id", authMidlleware, async (req, res) => {
   }
 });
 
-// ===================== CATEGORIES =====================
 
 app.get("/categories", async (req, res) => {
   console.log('Fetching categories');

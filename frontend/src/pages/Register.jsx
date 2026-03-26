@@ -46,7 +46,7 @@ export default function Register() {
 
       <div className="auth-card">
         <div className="auth-header">
-          <div className="auth-logo">📋</div>
+          <div className="auth-logo"><img src="/logo.png" alt="ProjetCloud" /></div>
           <h1>ProjetCloud</h1>
           <p>Créez votre compte pour commencer</p>
         </div>

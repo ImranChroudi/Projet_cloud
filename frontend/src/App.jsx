@@ -11,11 +11,13 @@ import Users from './pages/Users';
 import Categories from './pages/Categories';
 import Chat from './pages/Chat';
 import './App.css';
+import { ToastContainer } from 'react-toastify';
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+      <ToastContainer />
         <Routes>
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
@@ -25,9 +27,9 @@ function App() {
           <Route
             path="/"
             element={
-              <ProtectedRoute>
+              //<ProtectedRoute>
                 <Layout />
-              </ProtectedRoute>
+              //</ProtectedRoute>
             }
           >
             <Route index element={<Navigate to="/dashboard" replace />} />

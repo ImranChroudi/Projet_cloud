@@ -89,6 +89,7 @@ export default function KanbanBoard() {
         await taskAPI.put(`/tasks/${editTask._id}`, payload);
       } else {
         await taskAPI.post('/tasks', payload);
+        
       }
       setShowForm(false);
       setEditTask(null);
@@ -347,7 +348,9 @@ export default function KanbanBoard() {
                 </select>
               </div>
               <div className="form-actions">
-                <button type="submit" className="btn btn-primary">
+                <button 
+                    type="submit"
+                    className="btn btn-primary">
                   {editTask ? 'Modifier' : 'Créer'}
                 </button>
                 <button

@@ -3,9 +3,12 @@ const Task = require("../models/Task")
 
 // CREATE
 exports.createTask = async (req,res)=>{
+
+  console.log("Creating task with data:", req.body);
  try{
   const task = new Task(req.body)
   await task.save()
+  consolr.log("Task created:", task.app);
   const sendNotification = req.app.get("sendNotification");
   if (sendNotification) {
     await sendNotification("task_created", "Nouvelle tâche", `La tâche "${task.title}" a été créée`, null, task.projectId);

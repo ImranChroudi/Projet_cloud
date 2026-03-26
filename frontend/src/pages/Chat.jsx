@@ -27,11 +27,12 @@ export default function Chat() {
     });
 
 
+
     socketRef.current.on("newMessage", (message) => {
-     if (message.projectId === selectedChannel?._id) {
-    console.log("Correct room message:", message);
-    setMessages((prev) => [...prev, message]);
-  }
+      console.log("Received message:", message);
+      setMessages((prev) => [...prev, message[0]]);
+      
+
     });
 
     loadProjects();
@@ -43,6 +44,7 @@ export default function Chat() {
 
   // Join/leave project room when channel changes
   useEffect(() => {
+    console.log("Selected channel changed:", selectedChannel?._id);
     if (selectedChannel) {
       socketRef.current?.emit("joinProject", selectedChannel._id);
       loadMessages(selectedChannel._id);
@@ -62,7 +64,7 @@ export default function Chat() {
       const res = await API.get('/projects');
       setProjects(res.data);
       if (res.data.length > 0) {
-        setSelectedChannel(res.data[0]);
+        setSelectedChannel(res.data[0]._id);
       }
     } catch (err) {
       console.error('Error loading projects:', err);
@@ -73,6 +75,7 @@ export default function Chat() {
     try {
       const res = await messageApi.get(`/messages/${projectId}`);
       setMessages(res.data);
+      console.log("Loaded messages:", res.data);
     } catch (err) {
       console.error('Messages not available:', err);
     }

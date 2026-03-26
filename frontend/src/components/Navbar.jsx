@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import notifApi from '../api/notifApi';
 
-const NOTIF_SOCKET_URL = 'http://localhost:3004';
+const NOTIF_SOCKET_URL = 'http://localhost:3003';
 
 const NOTIF_ICONS = {
   project_created: FolderPlus,

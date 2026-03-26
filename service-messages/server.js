@@ -7,24 +7,13 @@ import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import messageRoutes from "./routes/messageRoutes.js";
 import Message from "./models/Message.js";
+import Notification from "./models/Notification.js";
 
 dotenv.config();
 
 const app = express();
 const PORT = 3003;
-const NOTIFICATION_URL = process.env.NOTIFICATION_URL || "http://localhost:3004";
 
-const sendNotification = async (type, title, message, userId, projectId) => {
-  try {
-    await fetch(`${NOTIFICATION_URL}/notifications`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type, title, message, userId, projectId }),
-    });
-  } catch (err) {
-    console.error("Notification error:", err.message);
-  }
-};
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
@@ -39,6 +28,67 @@ app.use(express.json());
 app.set("io", io);
 
 app.use("/messages", messageRoutes);
+
+// ── Notification: create a notification ──
+app.post("/notifications", async (req, res) => {
+  try {
+    const { type, title, message, userId, projectId } = req.body;
+    const notif = new Notification({ type, title, message, userId, projectId });
+    await notif.save();
+    io.emit("notification", notif);
+    res.status(201).json(notif);
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error });
+  }
+});
+
+app.get("/notifications", async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.unread === "true") filter.read = false;
+    const notifications = await Notification.find(filter)
+      .sort({ createdAt: -1 })
+      .limit(50);
+    res.json(notifications);
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error });
+  }
+});
+
+app.put("/notifications/:id/read", async (req, res) => {
+  try {
+    const notif = await Notification.findByIdAndUpdate(
+      req.params.id,
+      { read: true },
+      { new: true }
+    );
+    if (!notif) return res.status(404).json({ message: "Notification non trouvée" });
+    res.json(notif);
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error });
+  }
+});
+
+// ── Notification: mark all as read ──
+app.put("/notifications/read-all", async (req, res) => {
+  try {
+    await Notification.updateMany({ read: false }, { read: true });
+    res.json({ message: "Toutes les notifications marquées comme lues" });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error });
+  }
+});
+
+// Helper: create notification locally and emit via socket
+const sendNotification = async (type, title, message, userId, projectId) => {
+  try {
+    const notif = new Notification({ type, title, message, userId, projectId });
+    await notif.save();
+    io.emit("notification", notif);
+  } catch (err) {
+    console.error("Notification error:", err.message);
+  }
+};
 
 // Socket.IO auth middleware
 io.use((socket, next) => {
@@ -69,7 +119,6 @@ io.on("connection", (socket) => {
   });
 
 socket.on("sendMessage", async (data) => {
-  console.log(data);
   try {
     const message = new Message({
         text: data.text,
@@ -77,9 +126,11 @@ socket.on("sendMessage", async (data) => {
         user: socket.user.id,
         username: socket.user.email.split("@")[0],
       });
+          console.log("data received:", data);
       await message.save();
-      const populated = await message.populate("user", "username");
-      io.to(data.projectId).emit("newMessage", populated);
+      const populated =  await Message.find({ _id: message._id });
+      io.emit("newMessage", populated);
+      console.log("data projectID:", data.projectId);
       await sendNotification("message_sent", "Nouveau message", `${populated.user?.username || "Utilisateur"}: ${data.text.substring(0, 50)}`, socket.user.id, data.projectId);
     } catch (error) {
       socket.emit("error", { message: "Erreur envoi message" });

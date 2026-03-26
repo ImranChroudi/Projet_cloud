@@ -7,7 +7,7 @@ const commentRoutes = require("./routes/commentRoutes")
 
 const app = express()
 
-const NOTIFICATION_URL = process.env.NOTIFICATION_URL || "http://localhost:3004";
+const NOTIFICATION_URL = process.env.NOTIFICATION_URL || "http://localhost:3003";
 
 const sendNotification = async (type, title, message, userId, projectId) => {
   try {

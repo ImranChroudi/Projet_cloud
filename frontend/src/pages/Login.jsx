@@ -38,7 +38,7 @@ export default function Login() {
 
       <div className="auth-card">
         <div className="auth-header">
-          <div className="auth-logo">📋</div>
+          <div className="auth-logo"><img src="/logo.png" alt="ProjetCloud" /></div>
           <h1>ProjetCloud</h1>
           <p>Connectez-vous à votre espace de travail</p>
         </div>
