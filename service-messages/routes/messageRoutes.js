@@ -21,7 +21,7 @@ router.get("/:projectId", authMiddleware, async (req, res) => {
 
 router.post("/", authMiddleware, async (req, res) => {
   try {
-    const message = new Message({ ...req.body, user: req.user.id , username: req.user.email.split("@")[0]});
+    const message = new Message({ ...req.body, user: req.user.id , username: req.user.username });
     await message.save();
     res.json(message);
   } catch (error) {

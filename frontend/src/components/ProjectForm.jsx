@@ -196,7 +196,9 @@ export default function ProjectForm({ current, onSaved, onCancel }) {
         <MultiUserSelect
           users={users}
           value={form.members}
-          onChange={(members) => { setForm({ ...form, members }); if (errors.members) setErrors({ ...errors, members: "" }); }}
+          onChange={(members) => { 
+            setForm({ ...form, members });
+            if (errors.members) setErrors({ ...errors, members: "" }); }}
         />
         {errors.members && <span className="field-error">{errors.members}</span>}
       </div>

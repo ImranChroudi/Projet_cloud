@@ -2,6 +2,7 @@ import { useAuth } from '../context/AuthContext';
 import { Bell, Search, Menu, FolderPlus, ListChecks, MessageSquare, FileIcon } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
+import { toast } from 'react-toastify';
 import notifApi from '../api/notifApi';
 
 const NOTIF_SOCKET_URL = 'http://localhost:3003';
@@ -46,6 +47,13 @@ export default function Navbar({ onMenuClick }) {
       // Only add if it's for this user
       if (!notif.userId || notif.userId === String(user.id)) {
         setNotifications((prev) => [notif, ...prev]);
+        toast.info(
+          <div>
+            <strong>{notif.title}</strong>
+            <p style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>{notif.message}</p>
+          </div>,
+          { icon: '🔔', autoClose: 5000 }
+        );
       }
     });
 

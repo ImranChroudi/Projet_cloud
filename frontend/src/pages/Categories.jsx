@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import API from '../api/axios' ;
+import { toast } from 'react-toastify';
 import { Plus, Edit3, Trash2, Tag, X } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function Categories() {
   const [categories, setCategories] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editCat, setEditCat] = useState(null);
   const [form, setForm] = useState({ name: '', description: '' });
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   useEffect(() => {
     loadCategories();
@@ -32,19 +35,28 @@ export default function Categories() {
       setShowForm(false);
       setEditCat(null);
       setForm({ name: '', description: '' });
+      toast.success(editCat ? 'Catégorie modifiée' : 'Catégorie créée avec succès');
       loadCategories();
     } catch (err) {
       console.error('Error saving category:', err);
+      toast.error(err.response?.data?.message || 'Erreur lors de la sauvegarde de la catégorie');
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Supprimer cette catégorie ?')) return;
+    setConfirmDelete(id);
+  };
+
+  const confirmDeleteCategory = async () => {
     try {
-      await API.delete(`/categories/${id}`);
+      await API.delete(`/categories/${confirmDelete}`);
+      toast.success('Catégorie supprimée');
       loadCategories();
     } catch (err) {
-      console.error('Error deleting category:', err);
+      const msg = err.response?.data?.message || 'Erreur lors de la suppression de la catégorie';
+      toast.error(msg);
+    } finally {
+      setConfirmDelete(null);
     }
   };
 
@@ -175,6 +187,14 @@ export default function Categories() {
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        open={!!confirmDelete}
+        title="Supprimer la catégorie"
+        message="Êtes-vous sûr de vouloir supprimer cette catégorie ? Cette action est irréversible."
+        onConfirm={confirmDeleteCategory}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

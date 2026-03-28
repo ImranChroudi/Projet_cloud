@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import API from '../api/axios';
+import ConfirmModal from './ConfirmModal';
 
 export default function CategoryManager() {
   const [categories, setCategories] = useState([]);
   const [nom, setNom] = useState('');
   const [editId, setEditId] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   useEffect(() => {
     fetchCategories();
@@ -42,12 +44,17 @@ export default function CategoryManager() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Supprimer cette catégorie ?')) return;
+    setConfirmDelete(id);
+  };
+
+  const confirmDeleteCategory = async () => {
     try {
-      await API.delete(`/categories/${id}`);
+      await API.delete(`/categories/${confirmDelete}`);
       fetchCategories();
     } catch (err) {
       console.error('Erreur suppression catégorie:', err);
+    } finally {
+      setConfirmDelete(null);
     }
   };
 
@@ -92,6 +99,14 @@ export default function CategoryManager() {
         ))}
         {categories.length === 0 && <li className="empty-msg">Aucune catégorie</li>}
       </ul>
+
+      <ConfirmModal
+        open={!!confirmDelete}
+        title="Supprimer la catégorie"
+        message="Êtes-vous sûr de vouloir supprimer cette catégorie ?"
+        onConfirm={confirmDeleteCategory}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

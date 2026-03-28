@@ -20,11 +20,17 @@ const TaskSchema = new mongoose.Schema({
   default: "todo"
  },
  createdBy: String,
- assignedTo: String,
- responsible: String,
+ assignedTo: { type: [String], default: [] },
+ responsible: { type: [String], default: [] },
  creatorName: String,
 
- projectId: String
+ projectId: String,
+
+ attachments: [{
+  fileName: String,
+  fileUrl: String,
+  uploadedAt: { type: Date, default: Date.now }
+ }]
 
 },{timestamps:true})
 

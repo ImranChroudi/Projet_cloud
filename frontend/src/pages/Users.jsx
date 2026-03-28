@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import API from '../api/axiosauth';
+import { toast } from 'react-toastify';
 import {
   Search,
   UserPlus,
@@ -9,6 +10,7 @@ import {
   Unlock,
   X,
 } from 'lucide-react';
+import ConfirmModal from '../components/ConfirmModal';
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -17,6 +19,7 @@ export default function UsersPage() {
   const [showForm, setShowForm] = useState(false);
   const [editUser, setEditUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const [form, setForm] = useState({
     username: '',
@@ -87,22 +90,30 @@ const loadUsers = async () => {
         });
       }
 
+      toast.success(editUser ? 'Utilisateur modifié' : 'Utilisateur créé avec succès');
       resetForm();
       loadUsers();
     } catch (err) {
-      console.error(err);
+      const msg = err.response?.data?.message || 'Erreur lors de la sauvegarde';
+      toast.error(msg);
     }
   };
 
   // DELETE
   const handleDelete = async (id) => {
-    if (!window.confirm('Supprimer cet utilisateur ?')) return;
+    setConfirmDelete(id);
+  };
 
+  const confirmDeleteUser = async () => {
     try {
-      await API.delete(`/users/${id}`);
+      await API.delete(`/users/${confirmDelete}`);
+      toast.success('Utilisateur supprimé');
       loadUsers();
     } catch (err) {
-      console.error(err);
+      const msg = err.response?.data?.message || 'Erreur lors de la suppression de l\'utilisateur';
+      toast.error(msg);
+    } finally {
+      setConfirmDelete(null);
     }
   };
 
@@ -111,12 +122,14 @@ const loadUsers = async () => {
     try {
       if (user.status === 'active') {
         await API.put(`/users/block/${user._id}`);
+        toast.success('Utilisateur bloqué');
       } else {
         await API.put(`/users/unblock/${user._id}`);
+        toast.success('Utilisateur débloqué');
       }
       loadUsers();
     } catch (err) {
-      console.error(err);
+      toast.error(err.response?.data?.message || 'Erreur lors du changement de statut');
     }
   };
 
@@ -365,6 +378,14 @@ const loadUsers = async () => {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={!!confirmDelete}
+        title="Supprimer l'utilisateur"
+        message="Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action est irréversible."
+        onConfirm={confirmDeleteUser}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

@@ -14,6 +14,7 @@ const NOTIFICATION_URL = process.env.NOTIFICATION_URL || "http://localhost:3003"
 
 const sendNotification = async (type, title, message, userId, projectId) => {
   try {
+    console.log(`Sending notification: type=${type}, title=${title}, message=${message}, userId=${userId}, projectId=${projectId}`);
     await fetch(`${NOTIFICATION_URL}/notifications`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -36,8 +37,10 @@ app.post("/projects", authMidlleware, async (req, res) => {
     const project = await newProject.save();
 
     // Send notification only to added members (not the creator)
+  
     const addedMembers = (req.body.members || []).filter(id => id !== req.user.id);
     for (const memberId of addedMembers) {
+      console.log(`Sending notification for project ${project._id} to user ${memberId}`);
       await sendNotification(
         "project",
         "Ajouté à un projet",

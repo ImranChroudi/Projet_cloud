@@ -4,6 +4,7 @@ import API from '../api/axios';
 import messageApi from '../api/messageApi';
 import { io } from 'socket.io-client';
 import { Send, Hash, Users, Paperclip, X, FileText, Image } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 const SOCKET_URL = 'http://localhost:3003';
 
@@ -118,7 +119,7 @@ export default function Chat() {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 10 * 1024 * 1024) {
-        alert('Le fichier ne doit pas dépasser 10 Mo');
+        toast.warn('Le fichier ne doit pas dépasser 10 Mo');
         return;
       }
       setSelectedFile(file);
@@ -148,7 +149,7 @@ export default function Chat() {
         fileData = uploadRes.data;
       } catch (err) {
         console.error('Upload error:', err);
-        alert("Erreur lors de l'envoi du fichier");
+        toast.error("Erreur lors de l'envoi du fichier");
         setUploading(false);
         return;
       }

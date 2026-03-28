@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import API from '../api/axios';
+import { toast } from 'react-toastify';
 import ProjectForm from '../components/ProjectForm';
+import ConfirmModal from '../components/ConfirmModal';
 import {
   Plus,
   Search,
@@ -25,6 +27,7 @@ export default function Projects() {
     endDate: '',
   });
   const [loading, setLoading] = useState(true);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -41,18 +44,26 @@ export default function Projects() {
       setCategories(catRes.data);
     } catch (err) {
       console.error('Error loading projects:', err);
+      toast.error('Erreur lors du chargement des projets');
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Supprimer ce projet ?')) return;
+    setConfirmDelete(id);
+  };
+
+  const confirmDeleteProject = async () => {
     try {
-      await API.delete(`/projects/${id}`);
+      const res = await API.delete(`/projects/${confirmDelete}`);
+      toast.success(res.data?.message || 'Projet supprimé avec succès');
       loadData();
     } catch (err) {
-      console.error('Error deleting project:', err);
+      const msg = err.response?.data?.message || 'Erreur lors de la suppression du projet';
+      toast.error(msg);
+    } finally {
+      setConfirmDelete(null);
     }
   };
 
@@ -327,6 +338,14 @@ export default function Projects() {
           ))}
         </div>
       )}
+
+      <ConfirmModal
+        open={!!confirmDelete}
+        title="Supprimer le projet"
+        message="Êtes-vous sûr de vouloir supprimer ce projet ? Cette action est irréversible."
+        onConfirm={confirmDeleteProject}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

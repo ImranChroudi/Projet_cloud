@@ -91,6 +91,7 @@ app.post("/upload", upload.single("file"), (req, res) => {
 
 // ── Notification: create a notification ──
 app.post("/notifications", async (req, res) => {
+  
   try {
     const { type, title, message, userId, projectId } = req.body;
     const notif = new Notification({ type, title, message, userId, projectId });
@@ -193,6 +194,7 @@ const lastReadMap = new Map();
 // Helper: create notification for a specific user and emit via socket
 const sendNotification = async (type, title, message, userId, projectId) => {
   try {
+    console.log(`Creating notification: type=${type}, title=${title}, message=${message}, userId=${userId}, projectId=${projectId}`);
     const notif = new Notification({ type, title, message, userId, projectId });
     await notif.save();
     // Emit to specific user room only
@@ -239,12 +241,13 @@ io.on("connection", (socket) => {
   });
 
   socket.on("sendMessage", async (data) => {
+    console.log()
     try {
       const message = new Message({
         text: data.text || "",
         projectId: data.projectId,
         user: socket.user.id,
-        username: socket.user.email.split("@")[0],
+        username: socket.user.email.split("@")[0] || "Utilisateur",
         fileUrl: data.fileUrl || null,
         fileName: data.fileName || null,
         fileType: data.fileType || null,

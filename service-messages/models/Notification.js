@@ -3,7 +3,7 @@ import mongoose, { Schema } from "mongoose";
 const notificationSchema = new Schema({
   type: {
     type: String,
-    enum: ["project_created", "task_created", "message_sent", "file_shared"],
+    enum: ["project", "task_created", "message_sent", "file_shared"],
     required: true,
   },
   title: { type: String, required: true },

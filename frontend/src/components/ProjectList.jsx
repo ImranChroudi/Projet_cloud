@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import API from '../api/axios';
+import ConfirmModal from './ConfirmModal';
 
 export default function ProjectList({ onEdit, refresh }) {
   const [projects, setProjects] = useState([]);
@@ -10,6 +11,7 @@ export default function ProjectList({ onEdit, refresh }) {
     startDate: '',
     endDate: '',
   });
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   useEffect(() => {
     fetchProjects();
@@ -45,12 +47,17 @@ export default function ProjectList({ onEdit, refresh }) {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Supprimer ce projet ?')) return;
+    setConfirmDelete(id);
+  };
+
+  const confirmDeleteProject = async () => {
     try {
-      await API.delete(`/projects/${id}`);
+      await API.delete(`/projects/${confirmDelete}`);
       fetchProjects();
     } catch (err) {
       console.error('Erreur suppression:', err);
+    } finally {
+      setConfirmDelete(null);
     }
   };
 
@@ -161,6 +168,14 @@ export default function ProjectList({ onEdit, refresh }) {
           </table>
         </div>
       )}
+
+      <ConfirmModal
+        open={!!confirmDelete}
+        title="Supprimer le projet"
+        message="Êtes-vous sûr de vouloir supprimer ce projet ? Cette action est irréversible."
+        onConfirm={confirmDeleteProject}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }

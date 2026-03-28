@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import Loader from "../components/Loader";
 import API from "../api/axios";
+import { toast } from 'react-toastify';
 import API_AUTH from "../api/axiosauth";
 import taskAPI from "../api/taskApi";
+import MultiUserSelect from "../components/MultiUserSelect";
 import {
   Plus,
   X,
@@ -12,7 +14,12 @@ import {
   User,
   Edit3,
   Trash2,
+  Paperclip,
+  Download,
+  AlertTriangle,
+  FileText,
 } from "lucide-react";
+import ConfirmModal from '../components/ConfirmModal';
 
 const COLUMNS = [
   { id: "todo", title: "À faire", color: "#e2e8f0", accent: "#6C63FF" },
@@ -33,20 +40,24 @@ export default function KanbanBoard() {
   const [commentText, setCommentText] = useState("");
   const [draggedTask, setDraggedTask] = useState(null);
   const [taskId, setTaskId] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [deadlineTasks, setDeadlineTasks] = useState([]);
+  const [showDeadlineAlert, setShowDeadlineAlert] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [form, setForm] = useState({
     title: "",
     description: "",
     priority: "medium",
     deadline: "",
-    assignedTo: "",
+    assignedTo: [],
     projectId: "",
     status: "todo",
-    responsible: "",
   });
 
   useEffect(() => {
     loadProjects();
     loadUsers();
+    checkDeadlines();
   }, []);
 
   useEffect(() => {
@@ -71,6 +82,54 @@ export default function KanbanBoard() {
     }
   };
 
+  const checkDeadlines = async () => {
+    try {
+      const res = await taskAPI.get("/tasks/deadlines");
+      if (res.data.length > 0) {
+        setDeadlineTasks(res.data);
+        setShowDeadlineAlert(true);
+        toast.warning(`${res.data.length} tâche(s) arrivent à échéance dans les prochaines 24h !`);
+      }
+    } catch (err) {
+      console.error("Error checking deadlines:", err);
+    }
+  };
+
+  const handleFileUpload = async (taskId, file) => {
+    if (!file) return;
+    setUploadingFile(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await taskAPI.post(`/tasks/${taskId}/attachments`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      setTasks(tasks.map(t => t._id === taskId ? res.data : t));
+      if (editTask && editTask._id === taskId) setEditTask(res.data);
+      toast.success("Fichier ajouté");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Erreur lors de l'upload");
+    } finally {
+      setUploadingFile(false);
+    }
+  };
+
+  const handleDeleteAttachment = async (taskId, attachmentId) => {
+    try {
+      const res = await taskAPI.delete(`/tasks/${taskId}/attachments/${attachmentId}`);
+      setTasks(tasks.map(t => t._id === taskId ? res.data : t));
+      if (editTask && editTask._id === taskId) setEditTask(res.data);
+      toast.success("Fichier supprimé");
+    } catch (err) {
+      toast.error("Erreur lors de la suppression du fichier");
+    }
+  };
+
+  const getUserName = (userId) => {
+    const user = users.find(u => (u._id ?? u.id) == userId);
+    return user?.name || "?";
+  };
+
   const loadTasks = async () => {
     setLoading(true);
     try {
@@ -90,8 +149,9 @@ export default function KanbanBoard() {
     e.preventDefault();
     try {
       const payload = { ...form };
-      // Remove empty strings for ObjectId fields — Mongoose can't cast '' to ObjectId
-      if (!payload.assignedTo) delete payload.assignedTo;
+      // Build responsible names from selected user IDs
+      payload.responsible = (payload.assignedTo || []).map(id => getUserName(id));
+      if (!payload.assignedTo || payload.assignedTo.length === 0) delete payload.assignedTo;
       if (!payload.projectId) delete payload.projectId;
 
       if (editTask) {
@@ -106,24 +166,32 @@ export default function KanbanBoard() {
         description: "",
         priority: "medium",
         deadline: "",
-        assignedTo: "",
+        assignedTo: [],
         projectId: selectedProject,
         status: "todo",
-        responsible: "",
       });
       loadTasks();
+      toast.success(editTask ? 'Tâche modifiée' : 'Tâche créée avec succès');
     } catch (err) {
       console.error("Error saving task:", err);
+      toast.error(err.response?.data?.message || 'Erreur lors de la sauvegarde de la tâche');
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Supprimer cette tâche ?")) return;
+    setConfirmDelete(id);
+  };
+
+  const confirmDeleteTask = async () => {
     try {
-      await taskAPI.delete(`/tasks/${id}`);
+      await taskAPI.delete(`/tasks/${confirmDelete}`);
+      toast.success('Tâche supprimée');
       loadTasks();
     } catch (err) {
-      console.error("Error deleting task:", err);
+      const msg = err.response?.data?.message || 'Erreur lors de la suppression de la tâche';
+      toast.error(msg);
+    } finally {
+      setConfirmDelete(null);
     }
   };
 
@@ -202,10 +270,9 @@ export default function KanbanBoard() {
       description: task.description || "",
       priority: task.priority || "medium",
       deadline: task.deadline?.slice(0, 10) || "",
-      assignedTo: task.assignedTo?._id || task.assignedTo || "",
+      assignedTo: Array.isArray(task.assignedTo) ? task.assignedTo : (task.assignedTo ? [task.assignedTo] : []),
       projectId: task.projectId?._id || task.projectId || "",
       status: task.status || "todo",
-      responsible: task.responsible,
     });
     setShowForm(true);
   };
@@ -217,7 +284,7 @@ export default function KanbanBoard() {
       description: "",
       priority: "medium",
       deadline: "",
-      assignedTo: "",
+      assignedTo: [],
       projectId: selectedProject,
       status,
     });
@@ -265,6 +332,29 @@ export default function KanbanBoard() {
           </button>
         </div>
       </div>
+
+      {/* Deadline Alert Banner */}
+      {showDeadlineAlert && deadlineTasks.length > 0 && (
+        <div className="deadline-alert-banner">
+          <div className="deadline-alert-content">
+            <AlertTriangle size={18} />
+            <div>
+              <strong>Rappel de deadlines !</strong>
+              <span> {deadlineTasks.length} tâche(s) arrivent à échéance dans les prochaines 24h :</span>
+              <ul className="deadline-task-list">
+                {deadlineTasks.map(t => (
+                  <li key={t._id}>
+                    <strong>{t.title}</strong> — {new Date(t.deadline).toLocaleDateString("fr-FR")}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <button className="deadline-alert-close" onClick={() => setShowDeadlineAlert(false)}>
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       {/* Task Form Modal */}
       {showForm && (
@@ -342,26 +432,11 @@ export default function KanbanBoard() {
                 </div>
                 <div className="form-group">
                   <label>Assigner à</label>
-                  <select
+                  <MultiUserSelect
+                    users={users}
                     value={form.assignedTo}
-                    onChange={(e) => {
-                      const selectedOption =
-                        e.target.options[e.target.selectedIndex];
-
-                      setForm({
-                        ...form,
-                        assignedTo: e.target.value, // id
-                        responsible: selectedOption.text, // name
-                      });
-                    }}
-                  >
-                    <option value="">— Non assigné —</option>
-                    {users.map((u) => (
-                      <option key={u._id} value={u._id}>
-                        {u.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setForm({ ...form, assignedTo: val })}
+                  />
                 </div>
               </div>
               <div className="form-group">
@@ -380,6 +455,50 @@ export default function KanbanBoard() {
                   ))}
                 </select>
               </div>
+
+              {/* File Attachments (only in edit mode) */}
+              {editTask && (
+                <div className="form-group">
+                  <label><Paperclip size={14} /> Fichiers joints</label>
+                  <div className="attachments-list">
+                    {(editTask.attachments || []).map((att) => (
+                      <div key={att._id} className="attachment-item">
+                        <FileText size={14} />
+                        <a
+                          href={`http://localhost:5003${att.fileUrl}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="attachment-name"
+                        >
+                          {att.fileName}
+                        </a>
+                        <button
+                          type="button"
+                          className="icon-btn-sm icon-btn-danger"
+                          onClick={() => handleDeleteAttachment(editTask._id, att._id)}
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <label className="file-upload-btn">
+                    <Paperclip size={14} />
+                    {uploadingFile ? "Upload en cours..." : "Ajouter un fichier"}
+                    <input
+                      type="file"
+                      hidden
+                      disabled={uploadingFile}
+                      onChange={(e) => {
+                        if (e.target.files[0]) {
+                          handleFileUpload(editTask._id, e.target.files[0]);
+                          e.target.value = "";
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+              )}
               <div className="form-actions">
                 <button type="submit" className="btn btn-primary">
                   {editTask ? "Modifier" : "Créer"}
@@ -526,9 +645,14 @@ export default function KanbanBoard() {
                     </div>
                   </div>
                   <h4 className="kanban-card-title">{task.title}</h4>
-                  {task.creatorName && <p>Créé par: {task.creatorName}</p>}
+                  {task.creatorName && <p className="kanban-card-creator">Créé par: {task.creatorName}</p>}
 
-                  {task.responsible && <p>Responsable: {task.responsible}</p>}
+                  {task.responsible && task.responsible.length > 0 && (
+                    <div className="kanban-card-assignees">
+                      <User size={12} />
+                      <span>{Array.isArray(task.responsible) ? task.responsible.join(", ") : task.responsible}</span>
+                    </div>
+                  )}
 
                   {task.description && (
                     <p className="kanban-card-desc">
@@ -538,9 +662,15 @@ export default function KanbanBoard() {
                   <div className="kanban-card-footer">
                     <div className="kanban-card-meta">
                       {task.deadline && (
-                        <span className="meta-tag">
+                        <span className={`meta-tag ${new Date(task.deadline) < new Date(Date.now() + 24*60*60*1000) && task.status !== "done" ? "meta-tag-urgent" : ""}`}>
                           <Clock size={12} />
                           {new Date(task.deadline).toLocaleDateString("fr-FR")}
+                        </span>
+                      )}
+                      {task.attachments && task.attachments.length > 0 && (
+                        <span className="meta-tag">
+                          <Paperclip size={12} />
+                          {task.attachments.length}
                         </span>
                       )}
                       {task.comments && task.comments.length > 0 && (
@@ -557,14 +687,23 @@ export default function KanbanBoard() {
                       >
                         <MessageSquare size={14} />
                       </button>
-                      {task.assignedTo && (
-                        <div
-                          className="assigned-avatar"
-                          title={task.assignedTo.username || ""}
-                        >
-                          {(task.assignedTo.username || "?")
-                            .charAt(0)
-                            .toUpperCase()}
+                      {task.assignedTo && task.assignedTo.length > 0 && (
+                        <div className="assigned-avatars">
+                          {(Array.isArray(task.assignedTo) ? task.assignedTo : [task.assignedTo]).slice(0, 3).map((userId, i) => (
+                            <div
+                              key={i}
+                              className="assigned-avatar"
+                              title={getUserName(userId)}
+                              style={{ zIndex: 3 - i }}
+                            >
+                              {getUserName(userId).charAt(0).toUpperCase()}
+                            </div>
+                          ))}
+                          {Array.isArray(task.assignedTo) && task.assignedTo.length > 3 && (
+                            <div className="assigned-avatar assigned-avatar-more">
+                              +{task.assignedTo.length - 3}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -575,6 +714,14 @@ export default function KanbanBoard() {
           </div>
         ))}
       </div>
+
+      <ConfirmModal
+        open={!!confirmDelete}
+        title="Supprimer la tâche"
+        message="Êtes-vous sûr de vouloir supprimer cette tâche ? Cette action est irréversible."
+        onConfirm={confirmDeleteTask}
+        onCancel={() => setConfirmDelete(null)}
+      />
     </div>
   );
 }
