@@ -24,6 +24,7 @@ exports.createTask = async (req,res)=>{
 }
 
 exports.getTasks = async (req,res)=>{
+  console.log("Getting tasks for user:", req.user);
  try{
   const filter = {
     $or:[
