@@ -8,10 +8,11 @@ const projectSchema = new Schema({
   status: String,
   idCategory: { type: Schema.Types.ObjectId, ref: "Category" },
   members: {
-    type: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    type: [Number],
     default: [],
   },
-  createdBy: { type: Schema.Types.ObjectId, ref: "User" },
+  createdBy: { type: Schema.Types.Mixed },
+  ownerName: String
 });
 
 const Project = mongoose.model("Project", projectSchema);

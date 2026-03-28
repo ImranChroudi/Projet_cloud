@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API = axios.create({
+const API_AUTH = axios.create({
   baseURL: "http://localhost:5001",
   headers: {
     "Content-Type": "application/json",
@@ -8,12 +8,12 @@ const API = axios.create({
 });
 
 // Inject token dynamically
-API.interceptors.request.use((config) => {
+API_AUTH.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    config.headers.Authorization = `${token}`;
   }
   return config;
 });
 
-export default API;
+export default API_AUTH;

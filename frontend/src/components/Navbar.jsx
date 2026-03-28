@@ -1,5 +1,5 @@
 import { useAuth } from '../context/AuthContext';
-import { Bell, Search, Menu, FolderPlus, ListChecks, MessageSquare } from 'lucide-react';
+import { Bell, Search, Menu, FolderPlus, ListChecks, MessageSquare, FileIcon } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import notifApi from '../api/notifApi';
@@ -10,6 +10,7 @@ const NOTIF_ICONS = {
   project_created: FolderPlus,
   task_created: ListChecks,
   message_sent: MessageSquare,
+  file_shared: FileIcon,
 };
 
 function timeAgo(date) {
@@ -29,24 +30,29 @@ export default function Navbar({ onMenuClick }) {
   const socketRef = useRef(null);
 
   useEffect(() => {
-    // Load existing notifications
-    notifApi.get('/notifications?unread=true').then((res) => {
+    if (!user?.id) return;
+
+    // Load existing notifications filtered by this user
+    notifApi.get(`/notifications?unread=true&userId=${user.id}`).then((res) => {
       setNotifications(res.data);
     }).catch(() => {});
 
     // Connect to notification socket
-    const token = localStorage.getItem('token') ||
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YjU5NDc1NzYyYmVjZjdmMjlkZjUzOSIsInJvbGUiOiJhZG1pbiIsImVtYWlsIjoiYWxpY2VAZXhhbXBsZS5jb20iLCJpYXQiOjE3NzM1ODI2ODZ9.qrzLr2wqXBNLjJPDiSDzsf-WpRhknXVf70RF1KkhYEo";
+    const token = localStorage.getItem('token');
+    if (!token) return;
     socketRef.current = io(NOTIF_SOCKET_URL, { auth: { token } });
 
     socketRef.current.on('notification', (notif) => {
-      setNotifications((prev) => [notif, ...prev]);
+      // Only add if it's for this user
+      if (!notif.userId || notif.userId === String(user.id)) {
+        setNotifications((prev) => [notif, ...prev]);
+      }
     });
 
     return () => {
       socketRef.current?.disconnect();
     };
-  }, []);
+  }, [user?.id]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -61,9 +67,10 @@ export default function Navbar({ onMenuClick }) {
     }
   };
 
-  const markAllRead = async () => {
+  const markAllRead = async (e) => {
+    e.stopPropagation();
     try {
-      await notifApi.put('/notifications/read-all');
+      await notifApi.put(`/notifications/read-all?userId=${user?.id}`);
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     } catch (err) {
       console.error('Mark all read error:', err);
@@ -94,7 +101,7 @@ export default function Navbar({ onMenuClick }) {
             )}
           </button>
           {showNotif && (
-            <div className="notif-dropdown">
+            <div className="notif-dropdown" onClick={(e) => e.stopPropagation()}>
               <div className="notif-header">
                 <h4>Notifications</h4>
                 {unreadCount > 0 && (
@@ -105,7 +112,7 @@ export default function Navbar({ onMenuClick }) {
               </div>
               {notifications.length === 0 ? (
                 <div className="notif-empty">
-                  <p>Aucune notification</p>
+                  <p >Aucune notification</p>
                 </div>
               ) : (
                 notifications.slice(0, 20).map((notif) => {

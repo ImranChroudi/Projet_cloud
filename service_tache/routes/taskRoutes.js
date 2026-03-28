@@ -1,5 +1,6 @@
 const express = require("express")
 const router = express.Router()
+const { authMidlleware } = require("../midllewares/auth")
 
 const {
  createTask,
@@ -14,19 +15,19 @@ const {
  getComments
 } = require("../controllers/commentController")
 
-router.post("/", createTask)
+router.post("/", authMidlleware, createTask)
 
-router.get("/", getTasks)
+router.get("/", authMidlleware, getTasks)
 
-router.put("/:id", updateTask)
+router.put("/:id", authMidlleware, updateTask)
 
-router.delete("/:id", deleteTask)
+router.delete("/:id", authMidlleware, deleteTask)
 
 // Kanban
-router.put("/status/:id", changeStatus)
+router.put("/status/:id", authMidlleware, changeStatus)
 
 // Comments nested under tasks
-router.post("/:taskId/comments", addComment)
-router.get("/:taskId/comments", getComments)
+router.post("/:taskId/comments", authMidlleware, addComment)
+router.get("/:taskId/comments", authMidlleware, getComments)
 
 module.exports = router

@@ -23,8 +23,7 @@ router.post("/", authMiddleware, async (req, res) => {
   try {
     const message = new Message({ ...req.body, user: req.user.id , username: req.user.email.split("@")[0]});
     await message.save();
-    const populated = await message.populate("user", "username");
-    res.json(populated);
+    res.json(message);
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur", error });
   }

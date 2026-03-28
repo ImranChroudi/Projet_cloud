@@ -204,6 +204,7 @@ export default function Projects() {
             </div>
             <div className="project-detail">
               <h3>{viewProject.name}</h3>
+              <h4 className="project-owner">Propriétaire: {viewProject.ownerName || 'N/A'}</h4>
               <p className="project-desc">
                 {viewProject.description || 'Pas de description'}
               </p>

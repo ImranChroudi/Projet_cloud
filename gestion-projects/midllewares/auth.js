@@ -14,12 +14,13 @@ const authMidlleware = (req, res, next) => {
   if(!decoded) {
     return res.status(403).json({ message: 'token maxi f7al li 3andna' })
   };
-
+ 
   console.log("Decoded token:", decoded);
   req.user = {
     id: decoded.id,
     role: decoded.role,
-    email : decoded.email
+    email : decoded.email,
+    username: decoded.username
   }
 
   next();

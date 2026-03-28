@@ -1,7 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const reportRoutes = require('./routes/reportR');
 
@@ -11,10 +12,8 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/reports', reportRoutes);
-mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => console.log("Reporting service connected to MongoDB"))
+mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/project-cloud')
+  .then(() => console.log("Reporting service connected to MongoDB"))
   .catch(err => console.log(err));
 
 const PORT = process.env.PORT || 5000;

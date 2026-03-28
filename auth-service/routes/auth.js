@@ -3,7 +3,7 @@ const router = express.Router();
 const db = require("../db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const SECRET = "ton_secret_jwt";
+const SECRET = "your_secret_token_here";
 
 router.post("/register", async (req, res) => {
   try {
@@ -50,8 +50,7 @@ router.post("/login", async (req, res) => {
 
     const token = jwt.sign(
       { id:user.id, email: user.email ,username: user.name,role:user.role},
-      SECRET,
-      { expiresIn: "1h" }
+      SECRET
     );
 
     res.json({
@@ -71,8 +70,5 @@ router.post("/login", async (req, res) => {
     res.status(500).json({ message: "Erreur serveur" });
   }
 });
-
-
-
 
 module.exports = router;

@@ -5,12 +5,11 @@ const bcrypt = require("bcrypt");
 const authentificationToken= require("../authMiddleware/middlewere");
 
 
-// GET ALL USERS
 
-router.get("/", authentificationToken, async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const [users] = await db.query(
-      "SELECT id, name, email, role, is_blocked, created_at FROM users"
+      "SELECT id, name, email, role, is_blocked FROM users"
     );
 
     res.json(users);

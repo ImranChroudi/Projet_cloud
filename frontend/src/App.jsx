@@ -10,6 +10,7 @@ import KanbanBoard from './pages/KanbanBoard';
 import Users from './pages/Users';
 import Categories from './pages/Categories';
 import Chat from './pages/Chat';
+import Reports from './pages/Reports';
 import './App.css';
 import { ToastContainer } from 'react-toastify';
 
@@ -27,9 +28,9 @@ function App() {
           <Route
             path="/"
             element={
-              //<ProtectedRoute>
+              <ProtectedRoute>
                 <Layout />
-              //</ProtectedRoute>
+              </ProtectedRoute>
             }
           >
             <Route index element={<Navigate to="/dashboard" replace />} />
@@ -38,6 +39,7 @@ function App() {
             <Route path="tasks" element={<KanbanBoard />} />
             <Route path="categories" element={<Categories />} />
             <Route path="chat" element={<Chat />} />
+            <Route path="reports" element={<Reports />} />
             <Route
               path="users"
               element={

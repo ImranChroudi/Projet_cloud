@@ -1,11 +1,16 @@
 const Comment = require("../models/Comment")
 
 exports.addComment = async (req,res)=>{
+
+
+    console.log("Adding comment to task:", req.body);
+ 
+
  try{
   const comment = new Comment({
-   taskId: req.params.taskId,
+   taskId: req.body.taskId,
    text: req.body.text,
-   userId: req.body.userId
+   userId: req.user.userId
   })
   await comment.save()
   res.json(comment)
@@ -15,10 +20,13 @@ exports.addComment = async (req,res)=>{
 }
 
 exports.getComments = async (req,res)=>{
+    console.log("Fetching comments for task:", req.params.taskId);
  try{
   const comments = await Comment.find({
    taskId: req.params.taskId
   })
+
+  
   res.json(comments)
  }catch(err){
   res.status(500).json(err)

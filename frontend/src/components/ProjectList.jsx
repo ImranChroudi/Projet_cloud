@@ -47,7 +47,7 @@ export default function ProjectList({ onEdit, refresh }) {
   const handleDelete = async (id) => {
     if (!window.confirm('Supprimer ce projet ?')) return;
     try {
-      await API.delete(`/projets/${id}`);
+      await API.delete(`/projects/${id}`);
       fetchProjects();
     } catch (err) {
       console.error('Erreur suppression:', err);

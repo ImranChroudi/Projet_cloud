@@ -2,7 +2,11 @@ const mongoose = require("mongoose")
 
 const CommentSchema = new mongoose.Schema({
 
- taskId: String,
+ taskId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Task",
+    required: true
+ },
 
  text: String,
 

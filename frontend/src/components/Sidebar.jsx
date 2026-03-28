@@ -7,6 +7,7 @@ import {
   Users,
   Tag,
   MessageSquare,
+  BarChart3,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -27,6 +28,7 @@ export default function Sidebar({ collapsed, onToggle }) {
     { to: '/tasks', icon: ListTodo, label: 'Tâches' },
     { to: '/categories', icon: Tag, label: 'Catégories' },
     { to: '/chat', icon: MessageSquare, label: 'Chat' },
+    { to: '/reports', icon: BarChart3, label: 'Rapports' },
   ];
 
   if (isAdmin()) {

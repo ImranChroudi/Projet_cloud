@@ -1,10 +1,13 @@
 import mongoose, { Schema } from "mongoose";
 
 const messageSchema = new Schema({
-  text: { type: String, required: true },
-  user: { type: Schema.Types.ObjectId, ref: "User" },
+  text: { type: String, default: "" },
+  user: { type: String },
   username: { type: String },
-  projectId: { type: Schema.Types.ObjectId, ref: "Project" },
+  projectId: { type: String },
+  fileUrl: { type: String, default: null },
+  fileName: { type: String, default: null },
+  fileType: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },
 });
 

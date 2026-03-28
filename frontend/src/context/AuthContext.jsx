@@ -27,7 +27,7 @@ const login = async (email, password) => {
 
   const { token: newToken, user: userData } = res.data;
 
-    if (userData?.is_blocked === 0) {
+    if (userData?.is_blocked === 1) {
     throw new Error("Compte bloqué par l'admin");
   }
   localStorage.setItem("token", newToken);

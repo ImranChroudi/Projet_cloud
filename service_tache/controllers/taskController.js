@@ -1,17 +1,21 @@
 const { request } = require("express")
 const Task = require("../models/Task")
 
-// CREATE
 exports.createTask = async (req,res)=>{
-
-  console.log("Creating task with data:", req.body);
+  console.log("Creating task with data:", req.user);
  try{
-  const task = new Task(req.body)
+  const task = new Task({...req.body, createdBy:String( req.user?.userId) , creatorName: req.user?.username || "Unknown" , responsible: req.body.responsible || [] })
   await task.save()
-  consolr.log("Task created:", task.app);
+  console.log("Task created:", task._id);
   const sendNotification = req.app.get("sendNotification");
-  if (sendNotification) {
-    await sendNotification("task_created", "Nouvelle tâche", `La tâche "${task.title}" a été créée`, null, task.projectId);
+  if (sendNotification && task.assignedTo && task.assignedTo !== String(req.user?.userId)) {
+    await sendNotification(
+      "task_created",
+      "Nouvelle tâche assignée",
+      `La tâche "${task.title}" vous a été assignée par ${req.user?.username || "un utilisateur"}`,
+      task.assignedTo,
+      task.projectId
+    );
   }
   res.status(201).json(task)
  }catch(err){
@@ -19,21 +23,33 @@ exports.createTask = async (req,res)=>{
  }
 }
 
-// READ
 exports.getTasks = async (req,res)=>{
  try{
-  const filter = {};
-  if(req.query.projectId) filter.projectId = req.query.projectId;
+  const filter = {
+    $or:[
+      { createdBy: String(req.user?.userId) },
+      { assignedTo: String(req.user?.userId) },
+    ]
+  };
+  if(req.query.projectId) 
+    {
+      filter.projectId = req.query.projectId
+    }
+
   const tasks = await Task.find(filter)
+
+  console.log(`Tasks for user ${req.user?.userId} and project ${req.query.projectId}:`, tasks);
   res.json(tasks)
  }catch(err){
   res.status(500).json(err)
  }
 }
 
-// UPDATE
 exports.updateTask = async (req,res)=>{
  try{
+
+  console.log(req.body)
+  console.log(req.params.id)
   const task = await Task.findByIdAndUpdate(
    req.params.id,
    req.body,

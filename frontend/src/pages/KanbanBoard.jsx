@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
-import API from '../api/axios';
-import taskAPI from '../api/taskApi';
+import { useState, useEffect } from "react";
+import Loader from "../components/Loader";
+import API from "../api/axios";
+import API_AUTH from "../api/axiosauth";
+import taskAPI from "../api/taskApi";
 import {
   Plus,
   X,
@@ -10,32 +12,36 @@ import {
   User,
   Edit3,
   Trash2,
-} from 'lucide-react';
+} from "lucide-react";
 
 const COLUMNS = [
-  { id: 'todo', title: 'À faire', color: '#e2e8f0', accent: '#6C63FF' },
-  { id: 'in-progress', title: 'En cours', color: '#fef3c7', accent: '#F59E0B' },
-  { id: 'done', title: 'Terminé', color: '#d1fae5', accent: '#10B981' },
+  { id: "todo", title: "À faire", color: "#e2e8f0", accent: "#6C63FF" },
+  { id: "in-progress", title: "En cours", color: "#fef3c7", accent: "#F59E0B" },
+  { id: "done", title: "Terminé", color: "#d1fae5", accent: "#10B981" },
 ];
 
 export default function KanbanBoard() {
   const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [projects, setProjects] = useState([]);
   const [users, setUsers] = useState([]);
-  const [selectedProject, setSelectedProject] = useState('');
+  const [selectedProject, setSelectedProject] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editTask, setEditTask] = useState(null);
   const [showComments, setShowComments] = useState(null);
-  const [commentText, setCommentText] = useState('');
+  const [comments, setComments] = useState([]);
+  const [commentText, setCommentText] = useState("");
   const [draggedTask, setDraggedTask] = useState(null);
+  const [taskId, setTaskId] = useState(null);
   const [form, setForm] = useState({
-    title: '',
-    description: '',
-    priority: 'medium',
-    deadline: '',
-    assignedTo: '',
-    projectId: '',
-    status: 'todo',
+    title: "",
+    description: "",
+    priority: "medium",
+    deadline: "",
+    assignedTo: "",
+    projectId: "",
+    status: "todo",
+    responsible: "",
   });
 
   useEffect(() => {
@@ -49,31 +55,34 @@ export default function KanbanBoard() {
 
   const loadProjects = async () => {
     try {
-      const res = await API.get('/projects');
+      const res = await API.get("/projects");
       setProjects(res.data);
     } catch (err) {
-      console.error('Error loading projects:', err);
+      console.error("Error loading projects:", err);
     }
   };
 
   const loadUsers = async () => {
     try {
-      const res = await API.get('/users');
+      const res = await API_AUTH.get("/users");
       setUsers(res.data);
     } catch (err) {
-      console.error('Error loading users:', err);
+      console.error("Error loading users:", err);
     }
   };
 
   const loadTasks = async () => {
+    setLoading(true);
     try {
       const url = selectedProject
         ? `/tasks?projectId=${selectedProject}`
-        : '/tasks';
+        : "/tasks";
       const res = await taskAPI.get(url);
       setTasks(res.data);
     } catch (err) {
-      console.error('Error loading tasks:', err);
+      console.error("Error loading tasks:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -88,33 +97,33 @@ export default function KanbanBoard() {
       if (editTask) {
         await taskAPI.put(`/tasks/${editTask._id}`, payload);
       } else {
-        await taskAPI.post('/tasks', payload);
-        
+        await taskAPI.post("/tasks", payload);
       }
       setShowForm(false);
       setEditTask(null);
       setForm({
-        title: '',
-        description: '',
-        priority: 'medium',
-        deadline: '',
-        assignedTo: '',
+        title: "",
+        description: "",
+        priority: "medium",
+        deadline: "",
+        assignedTo: "",
         projectId: selectedProject,
-        status: 'todo',
+        status: "todo",
+        responsible: "",
       });
       loadTasks();
     } catch (err) {
-      console.error('Error saving task:', err);
+      console.error("Error saving task:", err);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Supprimer cette tâche ?')) return;
+    if (!window.confirm("Supprimer cette tâche ?")) return;
     try {
       await taskAPI.delete(`/tasks/${id}`);
       loadTasks();
     } catch (err) {
-      console.error('Error deleting task:', err);
+      console.error("Error deleting task:", err);
     }
   };
 
@@ -123,18 +132,31 @@ export default function KanbanBoard() {
       await taskAPI.put(`/tasks/${taskId}`, { status: newStatus });
       loadTasks();
     } catch (err) {
-      console.error('Error updating status:', err);
+      console.error("Error updating status:", err);
     }
   };
 
   const handleAddComment = async (taskId) => {
-    if (!commentText.trim()) return;
+    if (!commentText) return;
+
     try {
-      await taskAPI.post(`/tasks/${taskId}/comments`, { text: commentText });
-      setCommentText('');
-      loadTasks();
+      await taskAPI.post(`/comments/`, { text: commentText, taskId });
+      setCommentText("");
+      handleGetComments(taskId);
     } catch (err) {
-      console.error('Error adding comment:', err);
+      console.error("Error adding comment:", err);
+    }
+  };
+
+  const handleGetComments = async (taskId) => {
+    setShowComments(true);
+    setTaskId(taskId);
+    try {
+      const res = await taskAPI.get(`/comments/${taskId}`);
+      console.log("Loaded comments:", res.data);
+      setComments(res.data);
+    } catch (err) {
+      console.error("Error loading comments:", err);
     }
   };
 
@@ -142,13 +164,13 @@ export default function KanbanBoard() {
 
   const handleDragStart = (e, task) => {
     setDraggedTask(task);
-    e.dataTransfer.setData('text/plain', task._id);
-    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData("text/plain", task._id);
+    e.dataTransfer.effectAllowed = "move";
   };
 
   const handleDragOver = (e, columnId) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    e.dataTransfer.dropEffect = "move";
     if (dragOverColumn !== columnId) setDragOverColumn(columnId);
   };
 
@@ -176,25 +198,26 @@ export default function KanbanBoard() {
   const openEditForm = (task) => {
     setEditTask(task);
     setForm({
-      title: task.title || '',
-      description: task.description || '',
-      priority: task.priority || 'medium',
-      deadline: task.deadline?.slice(0, 10) || '',
-      assignedTo: task.assignedTo?._id || task.assignedTo || '',
-      projectId: task.projectId?._id || task.projectId || '',
-      status: task.status || 'todo',
+      title: task.title || "",
+      description: task.description || "",
+      priority: task.priority || "medium",
+      deadline: task.deadline?.slice(0, 10) || "",
+      assignedTo: task.assignedTo?._id || task.assignedTo || "",
+      projectId: task.projectId?._id || task.projectId || "",
+      status: task.status || "todo",
+      responsible: task.responsible,
     });
     setShowForm(true);
   };
 
-  const openNewForm = (status = 'todo') => {
+  const openNewForm = (status = "todo") => {
     setEditTask(null);
     setForm({
-      title: '',
-      description: '',
-      priority: 'medium',
-      deadline: '',
-      assignedTo: '',
+      title: "",
+      description: "",
+      priority: "medium",
+      deadline: "",
+      assignedTo: "",
       projectId: selectedProject,
       status,
     });
@@ -202,13 +225,16 @@ export default function KanbanBoard() {
   };
 
   const priorityConfig = {
-    high: { label: 'Haute', className: 'priority-high' },
-    medium: { label: 'Moyenne', className: 'priority-medium' },
-    low: { label: 'Basse', className: 'priority-low' },
+    high: { label: "Haute", className: "priority-high" },
+    medium: { label: "Moyenne", className: "priority-medium" },
+    low: { label: "Basse", className: "priority-low" },
   };
 
-  const getTasksByStatus = (status) =>
-    tasks.filter((t) => t.status === status);
+  const getTasksByStatus = (status) => tasks.filter((t) => t.status === status);
+
+  if (loading) {
+    return <Loader text="Chargement des tâches..." />;
+  }
 
   return (
     <div className="kanban-page">
@@ -245,7 +271,7 @@ export default function KanbanBoard() {
         <div className="modal-overlay" onClick={() => setShowForm(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>{editTask ? '✏️ Modifier la tâche' : '➕ Nouvelle tâche'}</h2>
+              <h2>{editTask ? "✏️ Modifier la tâche" : "➕ Nouvelle tâche"}</h2>
               <button
                 className="modal-close"
                 onClick={() => setShowForm(false)}
@@ -318,14 +344,21 @@ export default function KanbanBoard() {
                   <label>Assigner à</label>
                   <select
                     value={form.assignedTo}
-                    onChange={(e) =>
-                      setForm({ ...form, assignedTo: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const selectedOption =
+                        e.target.options[e.target.selectedIndex];
+
+                      setForm({
+                        ...form,
+                        assignedTo: e.target.value, // id
+                        responsible: selectedOption.text, // name
+                      });
+                    }}
                   >
                     <option value="">— Non assigné —</option>
                     {users.map((u) => (
                       <option key={u._id} value={u._id}>
-                        {u.username}
+                        {u.name}
                       </option>
                     ))}
                   </select>
@@ -348,10 +381,8 @@ export default function KanbanBoard() {
                 </select>
               </div>
               <div className="form-actions">
-                <button 
-                    type="submit"
-                    className="btn btn-primary">
-                  {editTask ? 'Modifier' : 'Créer'}
+                <button type="submit" className="btn btn-primary">
+                  {editTask ? "Modifier" : "Créer"}
                 </button>
                 <button
                   type="button"
@@ -368,34 +399,43 @@ export default function KanbanBoard() {
 
       {/* Comments Modal */}
       {showComments && (
-        <div className="modal-overlay" onClick={() => setShowComments(null)}>
+        <div
+          className="modal-overlay"
+          onClick={() => {
+            setShowComments(null);
+            setTaskId(null);
+          }}
+        >
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>💬 Commentaires — {showComments.title}</h2>
+              <h2>💬 Commentaires</h2>
               <button
                 className="modal-close"
-                onClick={() => setShowComments(null)}
+                onClick={() => {
+                  setShowComments(null);
+                  setTaskId(null);
+                }}
               >
                 <X size={20} />
               </button>
             </div>
             <div className="comments-section">
               <div className="comments-list">
-                {(!showComments.comments || showComments.comments.length === 0) ? (
+                {!comments || comments.length === 0 ? (
                   <p className="no-comments">Aucun commentaire</p>
                 ) : (
-                  showComments.comments.map((c, i) => (
+                  comments.map((c, i) => (
                     <div key={i} className="comment-item">
                       <div className="comment-avatar">
-                        {c.user?.username?.charAt(0) || 'U'}
+                        {c.user?.username?.charAt(0) || "U"}
                       </div>
                       <div className="comment-body">
                         <div className="comment-meta">
                           <span className="comment-author">
-                            {c.user?.username || 'Utilisateur'}
+                            {c.user?.username || "Utilisateur"}
                           </span>
                           <span className="comment-date">
-                            {new Date(c.createdAt).toLocaleDateString('fr-FR')}
+                            {new Date(c.createdAt).toLocaleDateString("fr-FR")}
                           </span>
                         </div>
                         <p>{c.text}</p>
@@ -411,12 +451,12 @@ export default function KanbanBoard() {
                   onChange={(e) => setCommentText(e.target.value)}
                   placeholder="Écrire un commentaire..."
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleAddComment(showComments._id);
+                    if (e.key === "Enter") handleAddComment(taskId);
                   }}
                 />
                 <button
                   className="btn btn-primary btn-sm"
-                  onClick={() => handleAddComment(showComments._id)}
+                  onClick={() => handleAddComment(taskId)}
                 >
                   Envoyer
                 </button>
@@ -431,7 +471,7 @@ export default function KanbanBoard() {
         {COLUMNS.map((col) => (
           <div
             key={col.id}
-            className={`kanban-column ${dragOverColumn === col.id ? 'kanban-column-dragover' : ''}`}
+            className={`kanban-column ${dragOverColumn === col.id ? "kanban-column-dragover" : ""}`}
             onDragOver={(e) => handleDragOver(e, col.id)}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, col.id)}
@@ -450,10 +490,7 @@ export default function KanbanBoard() {
                   {getTasksByStatus(col.id).length}
                 </span>
               </div>
-              <button
-                className="icon-btn"
-                onClick={() => openNewForm(col.id)}
-              >
+              <button className="icon-btn" onClick={() => openNewForm(col.id)}>
                 <Plus size={16} />
               </button>
             </div>
@@ -469,7 +506,7 @@ export default function KanbanBoard() {
                 >
                   <div className="kanban-card-top">
                     <span
-                      className={`priority-badge ${priorityConfig[task.priority]?.className || ''}`}
+                      className={`priority-badge ${priorityConfig[task.priority]?.className || ""}`}
                     >
                       {priorityConfig[task.priority]?.label || task.priority}
                     </span>
@@ -489,6 +526,10 @@ export default function KanbanBoard() {
                     </div>
                   </div>
                   <h4 className="kanban-card-title">{task.title}</h4>
+                  {task.creatorName && <p>Créé par: {task.creatorName}</p>}
+
+                  {task.responsible && <p>Responsable: {task.responsible}</p>}
+
                   {task.description && (
                     <p className="kanban-card-desc">
                       {task.description.substring(0, 80)}
@@ -499,7 +540,7 @@ export default function KanbanBoard() {
                       {task.deadline && (
                         <span className="meta-tag">
                           <Clock size={12} />
-                          {new Date(task.deadline).toLocaleDateString('fr-FR')}
+                          {new Date(task.deadline).toLocaleDateString("fr-FR")}
                         </span>
                       )}
                       {task.comments && task.comments.length > 0 && (
@@ -512,13 +553,18 @@ export default function KanbanBoard() {
                     <div className="kanban-card-bottom-actions">
                       <button
                         className="text-btn"
-                        onClick={() => setShowComments(task)}
+                        onClick={() => handleGetComments(task._id)}
                       >
                         <MessageSquare size={14} />
                       </button>
                       {task.assignedTo && (
-                        <div className="assigned-avatar" title={task.assignedTo.username || ''}>
-                          {(task.assignedTo.username || '?').charAt(0).toUpperCase()}
+                        <div
+                          className="assigned-avatar"
+                          title={task.assignedTo.username || ""}
+                        >
+                          {(task.assignedTo.username || "?")
+                            .charAt(0)
+                            .toUpperCase()}
                         </div>
                       )}
                     </div>
