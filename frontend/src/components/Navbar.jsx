@@ -7,6 +7,27 @@ import notifApi from '../api/notifApi';
 
 const NOTIF_SOCKET_URL = 'http://localhost:3003';
 
+// Notification sound using Web Audio API
+const playNotificationSound = () => {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    // Two-tone chime
+    osc.frequency.setValueAtTime(830, ctx.currentTime);
+    osc.frequency.setValueAtTime(1050, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.35);
+  } catch (e) {
+    // Audio not supported or blocked
+  }
+};
+
 const NOTIF_ICONS = {
   project_created: FolderPlus,
   task_created: ListChecks,
@@ -47,6 +68,7 @@ export default function Navbar({ onMenuClick }) {
       // Only add if it's for this user
       if (!notif.userId || notif.userId === String(user.id)) {
         setNotifications((prev) => [notif, ...prev]);
+        playNotificationSound();
         toast.info(
           <div>
             <strong>{notif.title}</strong>

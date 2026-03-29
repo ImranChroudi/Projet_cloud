@@ -10,7 +10,9 @@ const CommentSchema = new mongoose.Schema({
 
  text: String,
 
- userId: String
+ userId: String,
+
+ userName: String
 
 },{timestamps:true})
 

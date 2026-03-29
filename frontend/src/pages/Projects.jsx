@@ -322,7 +322,7 @@ export default function Projects() {
                     : '—'}
                 </span>
               </div>
-              {p.members && p.members.length > 0 && (
+              {/* {p.members && p.members.length > 0 && (
                 <div className="project-card-members">
                   {p.members.slice(0, 3).map((m, i) => (
                     <div key={i} className="member-avatar-sm">
@@ -333,7 +333,7 @@ export default function Projects() {
                     <span className="member-more">+{p.members.length - 3}</span>
                   )}
                 </div>
-              )}
+              )} */}
             </div>
           ))}
         </div>

@@ -1,5 +1,6 @@
 const { request } = require("express")
 const Task = require("../models/Task")
+const Comment = require("../models/Comment")
 const multer = require("multer")
 const path = require("path")
 const fs = require("fs")
@@ -74,8 +75,24 @@ exports.getTasks = async (req,res)=>{
 
   const tasks = await Task.find(filter)
 
-  console.log(`Tasks for user ${req.user?.userId} and project ${req.query.projectId}:`, tasks);
-  res.json(tasks)
+  // Aggregate comment counts for these tasks
+  const taskIds = tasks.map(t => t._id);
+  const commentCounts = await Comment.aggregate([
+    { $match: { taskId: { $in: taskIds } } },
+    { $group: { _id: "$taskId", count: { $sum: 1 } } }
+  ]);
+  const countMap = {};
+  for (const c of commentCounts) {
+    countMap[c._id.toString()] = c.count;
+  }
+  const tasksWithCounts = tasks.map(t => {
+    const obj = t.toObject();
+    obj.commentCount = countMap[t._id.toString()] || 0;
+    return obj;
+  });
+
+  console.log(`Tasks for user ${req.user?.userId} and project ${req.query.projectId}:`, tasksWithCounts);
+  res.json(tasksWithCounts)
  }catch(err){
   res.status(500).json(err)
  }

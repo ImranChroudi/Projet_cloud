@@ -214,7 +214,7 @@ io.use((socket, next) => {
   }
   try {
     const decoded = jwt.verify(token, process.env.SECRET_TOKEN);
-    socket.user = { id: decoded.id, role: decoded.role, email: decoded.email };
+    socket.user = { id: decoded.id, role: decoded.role, email: decoded.email , username: decoded.username };
     next();
   } catch (err) {
     next(new Error("Token invalide"));
@@ -225,10 +225,10 @@ io.on("connection", (socket) => {
   console.log("User connected:", socket.user.id);
 
   // Join user's personal room for targeted notifications
+  console.log(`User ${socket.user.id} joining personal room user_${socket.user.id}`);
   socket.join(`user_${socket.user.id}`);
 
   socket.on("joinProject", (projectId) => {
-    console.log(`User ${socket.user.id} joining project ${projectId}`);
     socket.join(projectId);
     // Mark as read when joining
     const key = `${socket.user.id}_${projectId}`;
@@ -236,18 +236,18 @@ io.on("connection", (socket) => {
   });
 
   socket.on("leaveProject", (projectId) => {
-    console.log(`User ${socket.user.id} leaving project ${projectId}`);
     socket.leave(projectId);
   });
 
   socket.on("sendMessage", async (data) => {
-    console.log()
+    console.log("new message data received:" , data);
+    console.log("Socket user info:", socket.user);
     try {
       const message = new Message({
         text: data.text || "",
         projectId: data.projectId,
         user: socket.user.id,
-        username: socket.user.email.split("@")[0] || "Utilisateur",
+        username: socket.user.username,
         fileUrl: data.fileUrl || null,
         fileName: data.fileName || null,
         fileType: data.fileType || null,

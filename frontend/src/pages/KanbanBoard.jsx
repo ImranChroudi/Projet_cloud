@@ -126,7 +126,8 @@ export default function KanbanBoard() {
   };
 
   const getUserName = (userId) => {
-    const user = users.find(u => (u._id ?? u.id) == userId);
+    const uid = String(userId);
+    const user = users.find(u => String(u._id ?? u.id) === uid);
     return user?.name || "?";
   };
 
@@ -211,6 +212,7 @@ export default function KanbanBoard() {
       await taskAPI.post(`/comments/`, { text: commentText, taskId });
       setCommentText("");
       handleGetComments(taskId);
+      loadTasks(); // Refresh to update comment counts
     } catch (err) {
       console.error("Error adding comment:", err);
     }
@@ -546,12 +548,12 @@ export default function KanbanBoard() {
                   comments.map((c, i) => (
                     <div key={i} className="comment-item">
                       <div className="comment-avatar">
-                        {c.user?.username?.charAt(0) || "U"}
+                        {c.userName?.charAt(0) || "U"}
                       </div>
                       <div className="comment-body">
                         <div className="comment-meta">
                           <span className="comment-author">
-                            {c.user?.username || "Utilisateur"}
+                            {c.userName || "Utilisateur"}
                           </span>
                           <span className="comment-date">
                             {new Date(c.createdAt).toLocaleDateString("fr-FR")}
@@ -647,10 +649,10 @@ export default function KanbanBoard() {
                   <h4 className="kanban-card-title">{task.title}</h4>
                   {task.creatorName && <p className="kanban-card-creator">Créé par: {task.creatorName}</p>}
 
-                  {task.responsible && task.responsible.length > 0 && (
+                  {task.assignedTo && task.assignedTo.length > 0 && (
                     <div className="kanban-card-assignees">
                       <User size={12} />
-                      <span>{Array.isArray(task.responsible) ? task.responsible.join(", ") : task.responsible}</span>
+                      <span>{(Array.isArray(task.assignedTo) ? task.assignedTo : [task.assignedTo]).map(id => getUserName(id)).join(", ")}</span>
                     </div>
                   )}
 
@@ -673,10 +675,10 @@ export default function KanbanBoard() {
                           {task.attachments.length}
                         </span>
                       )}
-                      {task.comments && task.comments.length > 0 && (
+                      {task.commentCount > 0 && (
                         <span className="meta-tag">
                           <MessageSquare size={12} />
-                          {task.comments.length}
+                          {task.commentCount}
                         </span>
                       )}
                     </div>

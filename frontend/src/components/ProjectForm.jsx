@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "../api/axios";
 import { toast } from "react-toastify";
 import API_AUTH from "../api/axiosauth";
@@ -6,6 +7,7 @@ import Select from "react-select";
 import MultiUserSelect from "./MultiUserSelect";
 
 export default function ProjectForm({ current, onSaved, onCancel }) {
+  const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState({
@@ -72,6 +74,7 @@ export default function ProjectForm({ current, onSaved, onCancel }) {
     if (form.startDate && form.endDate && form.endDate < form.startDate)
       errs.endDate = "La date de fin doit être après la date de début";
     if (form.members.length === 0) errs.members = "Ajoutez au moins un membre";
+    if (!form.idCategory) errs.idCategory = "Veuillez choisir une catégorie ou en créer une nouvelle";
     return errs;
   };
 
@@ -148,6 +151,7 @@ export default function ProjectForm({ current, onSaved, onCancel }) {
             name="idCategory"
             value={form.idCategory}
             onChange={handleChange}
+            className={errors.idCategory ? "input-error" : ""}
           >
             <option value="">— Aucune —</option>
             {categories.map((c) => (
@@ -156,6 +160,18 @@ export default function ProjectForm({ current, onSaved, onCancel }) {
               </option>
             ))}
           </select>
+          {errors.idCategory && (
+            <div className="field-error-with-action">
+              <span className="field-error">{errors.idCategory}</span>
+              <button
+                type="button"
+                className="btn btn-sm btn-outline"
+                onClick={() => navigate("/categories")}
+              >
+                Gérer les catégories
+              </button>
+            </div>
+          )}
         </div>
         <div className="form-group">
           <label>Statut</label>

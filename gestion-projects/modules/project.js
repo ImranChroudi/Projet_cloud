@@ -6,7 +6,7 @@ const projectSchema = new Schema({
   startDate: Date,
   endDate: Date,
   status: String,
-  idCategory: { type: Schema.Types.ObjectId, ref: "Category" },
+  idCategory: { type: Schema.Types.ObjectId, ref: "Category" , default: null},
   members: {
     type: [Number],
     default: [],

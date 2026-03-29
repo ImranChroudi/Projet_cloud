@@ -7,12 +7,6 @@ const router = express.Router();
 router.get("/:projectId", authMiddleware, async (req, res) => {
   try {
     const messages = await Message.find({ projectId: req.params.projectId })
-    console.log(`Messages pour le projet ${messages} :`, messages);
-
-    console.log(`Messages pour le projet ${req.params.projectId} :`, messages);
-    
-    console.log(`Messages pour le projet ${req.params.projectId} :`, messages);
-
     res.json(messages);
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur", error });
@@ -21,6 +15,7 @@ router.get("/:projectId", authMiddleware, async (req, res) => {
 
 router.post("/", authMiddleware, async (req, res) => {
   try {
+    console.log("Données reçues pour le message :", req.body);
     const message = new Message({ ...req.body, user: req.user.id , username: req.user.username });
     await message.save();
     res.json(message);
@@ -30,7 +25,6 @@ router.post("/", authMiddleware, async (req, res) => {
 });
 
 router.get("/" , (req, res) => {
-    console.log("Service de messagerie opérationnel");
   res.json({ message: "Service de messagerie opérationnel" });
 });
 

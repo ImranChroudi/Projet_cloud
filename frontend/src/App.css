@@ -1486,6 +1486,37 @@ button {
   display: block;
 }
 
+.field-error-with-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.field-error-with-action .field-error {
+  margin-top: 0;
+}
+
+.btn-sm {
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  border-radius: 6px;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--primary);
+  color: var(--primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-outline:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
 .input-error,
 input.input-error,
 textarea.input-error,
